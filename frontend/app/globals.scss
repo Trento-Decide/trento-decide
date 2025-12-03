@@ -1,18 +1,6 @@
-@use "bootstrap-italia/src/scss/bootstrap-italia";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-}
+@use "bootstrap-italia/src/scss/bootstrap-italia" with (
+  $primary-h: 160,
+  $primary-s: 100,
+  $primary-b: 48,
+  $header-slim-bg-color: #00402b
+);

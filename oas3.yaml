@@ -1,0 +1,127 @@
+openapi: 3.0.3
+info:
+  title: API Trento Decide
+  version: 1.0.0
+servers:
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/trentodecide/TrentoDecide/1.0.0
+  - url: 'https://api.server.test/v1'
+paths:
+  /proposte:
+    get:
+      description: Get a list of proposals
+      parameters: []
+      responses:
+        '200':
+          description: OK
+    parameters: []
+  '/proposte/{id}':
+    get:
+      summary: Get proposal by ID
+      operationId: getPropostaById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Proposal details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposta'
+        '404':
+          description: Proposal not found
+      description: Get a proposal
+components:
+  schemas:
+    PublicUser:
+      type: object
+      required:
+        - id
+        - username
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+    User:
+      allOf:
+        - $ref: '#/components/schemas/PublicUser'
+        - type: object
+          required:
+            - email
+          properties:
+            email:
+              type: string
+              format: email
+    UserRegistration:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    Citizen:
+      allOf:
+        - $ref: '#/components/schemas/PublicUser'
+      title: ''
+    Category:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    Status:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    Proposta:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - category
+        - author
+        - timestamp
+        - status
+        - votes
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/Category'
+        author:
+          $ref: '#/components/schemas/Citizen'
+        timestamp:
+          type: integer
+          format: int64
+        status:
+          $ref: '#/components/schemas/Status'
+        votes:
+          type: integer
