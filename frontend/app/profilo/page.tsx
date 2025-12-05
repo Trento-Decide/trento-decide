@@ -1,5 +1,7 @@
 "use client"
 
+import PropostaCard from '../components/PropostaCard'
+
 export default function Profilo() {
   const userData = {
     nome: "YOUSSEF",
@@ -8,6 +10,42 @@ export default function Profilo() {
     username: "@youssef",
     sesso: "Maschio",
   }
+
+  const myProposals = [
+    {
+      id: 1,
+      title: "Creare una pista ciclabile tra Piazza Dante e l'Università",
+      votes: "1.0k",
+      tag: "Mobilità",
+      author: "@youssef",
+      date: "27/02/2026",
+      description: "Proposta per creare un collegamento ciclabile sicuro tra Piazza Dante e l'Università di Trento (Povo).",
+      status: "In discussione"
+    }
+  ];
+
+  const favoriteProposals = [
+    {
+      id: 2,
+      title: "Riqualificazione Parco delle Albere",
+      votes: "856",
+      tag: "Verde Urbano",
+      author: "@maria",
+      date: "25/02/2026",
+      description: "Installazione di nuove panchine e aree gioco per bambini nel parco.",
+      status: "Aperta"
+    },
+    {
+      id: 3,
+      title: "Illuminazione pubblica via Belenzani",
+      votes: "432",
+      tag: "Sicurezza",
+      author: "@luca",
+      date: "20/02/2026",
+      description: "Potenziamento dell'illuminazione notturna per migliorare la sicurezza.",
+      status: "Chiusa"
+    }
+  ];
 
   return (
     <div className="container py-5">
@@ -36,6 +74,24 @@ export default function Profilo() {
         <li className="nav-item" role="presentation">
           <button
             className="nav-link d-flex align-items-center"
+            id="mie-proposte-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#mie-proposte"
+            type="button"
+            role="tab"
+            aria-controls="mie-proposte"
+            aria-selected="false"
+            tabIndex={-1}
+          >
+            <svg className="icon icon-sm me-2" role="presentation" focusable="false">
+              <use href="/svg/sprites.svg#it-file"></use>
+            </svg>
+            Le mie proposte
+          </button>
+        </li>
+        <li className="nav-item" role="presentation">
+          <button
+            className="nav-link d-flex align-items-center"
             id="preferiti-tab"
             data-bs-toggle="tab"
             data-bs-target="#preferiti"
@@ -43,10 +99,10 @@ export default function Profilo() {
             role="tab"
             aria-controls="preferiti"
             aria-selected="false"
-            disabled
+            tabIndex={-1}
           >
             <svg className="icon icon-sm me-2" role="presentation" focusable="false">
-              <use href="/svg/sprites.svg#it-heart"></use>
+              <use href="/svg/custom.svg#it-heart"></use>
             </svg>
             Preferiti
           </button>
@@ -166,11 +222,33 @@ export default function Profilo() {
         </div>
         <div
           className="tab-pane fade"
+          id="mie-proposte"
+          role="tabpanel"
+          aria-labelledby="mie-proposte-tab"
+        >
+          <div className="row">
+            <div className="col-12">
+              {myProposals.map(proposal => (
+                <PropostaCard key={proposal.id} proposal={proposal} />
+              ))}
+              {myProposals.length === 0 && <p className="text-muted">Non hai ancora creato nessuna proposta.</p>}
+            </div>
+          </div>
+        </div>
+        <div
+          className="tab-pane fade"
           id="preferiti"
           role="tabpanel"
           aria-labelledby="preferiti-tab"
         >
-          {/* Content for Preferiti would go here */}
+          <div className="row">
+            <div className="col-12">
+              {favoriteProposals.map(proposal => (
+                <PropostaCard key={proposal.id} proposal={proposal} />
+              ))}
+              {favoriteProposals.length === 0 && <p className="text-muted">Non hai ancora aggiunto nessuna proposta ai preferiti.</p>}
+            </div>
+          </div>
         </div>
       </div>
     </div>

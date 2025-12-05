@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import Breadcrumb from '@/app/components/Breadcrumb'
 
 export default function PropostaDettaglio() {
@@ -104,14 +105,16 @@ export default function PropostaDettaglio() {
               <title>{isFavourited ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}</title>
               <use href={`/svg/custom.svg#${isFavourited ? 'it-heart-full' : 'it-heart'}`}></use>
             </svg>
-            <svg 
-              className="icon icon-warning" 
-              role="button" 
-              style={{ cursor: 'pointer' }} 
-            >
-              <title>Modifica</title>
-              <use href="/svg/sprites.svg#it-pencil"></use>
-            </svg>
+            <Link href={`/proposte/${proposal.id}/modifica`}>
+              <svg 
+                className="icon icon-warning" 
+                role="button" 
+                style={{ cursor: 'pointer' }} 
+              >
+                <title>Modifica</title>
+                <use href="/svg/sprites.svg#it-pencil"></use>
+              </svg>
+            </Link>
             <svg 
               className="icon icon-secondary" 
               role="button" 

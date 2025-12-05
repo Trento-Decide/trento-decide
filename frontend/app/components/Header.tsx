@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Header() {
   return (
     <header className="it-header-wrapper">
@@ -46,14 +48,14 @@ export default function Header() {
             <div className="col-12">
               <div className="it-header-center-content-wrapper">
                 <div className="it-brand-wrapper">
-                  <a href="/">
+                  <Link href="/">
                     <svg className="icon">
                       <use href="/svg/sprites.svg#it-pa"></use>
                     </svg>
                     <div className="it-brand-text">
                       <div className="it-brand-title">Trento Decide</div>
                     </div>
-                  </a>
+                  </Link>
                 </div>
                 <div className="it-right-zone">
                   <div className="it-search-wrapper">
@@ -116,9 +118,9 @@ export default function Header() {
                   <div className="menu-wrapper">
                     <ul className="navbar-nav">
                       <li className="nav-item">
-                        <a className="nav-link" href="/proposte">
+                        <Link className="nav-link" href="/proposte">
                           <span>Proposte</span>
-                        </a>
+                        </Link>
                       </li>
                     </ul>
                   </div>
@@ -129,5 +131,5 @@ export default function Header() {
         </div>
       </div>
     </header>
-  );
+  )
 }

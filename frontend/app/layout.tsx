@@ -17,10 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body className="d-flex flex-column min-vh-100">
         <BootstrapClient />
         <Header />
-        {children}
+        <main className="flex-grow-1">
+          {children}
+        </main>
         <Footer />
       </body>
     </html>
