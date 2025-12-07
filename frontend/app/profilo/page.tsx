@@ -1,59 +1,60 @@
 "use client"
 
-import PropostaCard from '../components/PropostaCard'
+import { useState, useEffect } from "react"
+import { ApiError } from "next/dist/server/api-utils"
+
+import PropostaCard from "@/app/components/PropostaCard"
+import { getProposals } from "@/lib/api"
+import { getUserData } from "@/lib/local"
+import type { User, Proposta } from "../../../shared/models"
 
 export default function Profilo() {
-  const userData = {
-    nome: "YOUSSEF",
-    cognome: "BOUADOUD",
-    email: "youssef.bouadoud@gmail.com",
-    username: "@youssef",
-    sesso: "Maschio",
-  }
+  const [userData, setUserData] = useState<User>({ id: 0, username: "", email: "", first: "", last: "", sex: "Maschio" })
+  const [myProposals, setMyProposals] = useState<Proposta[]>([])
+  const [favoriteProposals, setFavoriteProposals] = useState<Proposta[]>([])
 
-  const myProposals = [
-    {
-      id: 1,
-      title: "Creare una pista ciclabile tra Piazza Dante e l'Università",
-      votes: "1.0k",
-      tag: "Mobilità",
-      author: "@youssef",
-      date: "27/02/2026",
-      description: "Proposta per creare un collegamento ciclabile sicuro tra Piazza Dante e l'Università di Trento (Povo).",
-      status: "In discussione"
-    }
-  ];
+  const [error, setError] = useState<string | null>(null)
 
-  const favoriteProposals = [
-    {
-      id: 2,
-      title: "Riqualificazione Parco delle Albere",
-      votes: "856",
-      tag: "Verde Urbano",
-      author: "@maria",
-      date: "25/02/2026",
-      description: "Installazione di nuove panchine e aree gioco per bambini nel parco.",
-      status: "Aperta"
-    },
-    {
-      id: 3,
-      title: "Illuminazione pubblica via Belenzani",
-      votes: "432",
-      tag: "Sicurezza",
-      author: "@luca",
-      date: "20/02/2026",
-      description: "Potenziamento dell'illuminazione notturna per migliorare la sicurezza.",
-      status: "Chiusa"
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const stored = getUserData()
+        if (stored) {
+          setUserData(stored)
+        } else {
+          throw Error("Non hai eseguito l'accesso")
+        }
+
+        const props = await getProposals({ authorId: stored.id })
+        setMyProposals(props.data)
+
+        const favs = await getProposals({ favourites: true })
+        setFavoriteProposals(favs.data)
+      } catch (err: unknown) {
+        if (err instanceof ApiError) {
+          setError(err.message)
+        }
+      }
     }
-  ];
+
+    fetchUserProfile()
+  }, [])
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash === "#mie-proposte" || hash === "#preferiti") {
+      const tabEl = document.querySelector(`button[data-bs-target="${hash}"]`) as HTMLElement
+      if (tabEl) {
+        tabEl.click()
+      }
+    }
+  }, [])
+
+  if (error) return <div className="container my-4">{error}</div>
 
   return (
-    <div className="container py-5">
-      <h1 className="mb-4 fw-bold">
-        Profilo utente {userData.nome} {userData.cognome}
-      </h1>
-
-      <ul className="nav nav-tabs" id="profileTabs" role="tablist">
+    <div className="container my-4">
+      <ul className="nav nav-tabs mb-4" id="profileTabs" role="tablist">
         <li className="nav-item" role="presentation">
           <button
             className="nav-link active d-flex align-items-center"
@@ -102,13 +103,12 @@ export default function Profilo() {
             tabIndex={-1}
           >
             <svg className="icon icon-sm me-2" role="presentation" focusable="false">
-              <use href="/svg/custom.svg#it-heart"></use>
+              <use href="/svg/custom.svg#heart"></use>
             </svg>
             Preferiti
           </button>
         </li>
       </ul>
-
       <div className="tab-content mt-5" id="profileTabsContent">
         <div
           className="tab-pane fade show active"
@@ -127,7 +127,7 @@ export default function Profilo() {
                     type="text"
                     className="form-control"
                     id="nome"
-                    value={userData.nome}
+                    value={userData.first}
                     readOnly
                     style={{ backgroundColor: "#e9ecef" }}
                   />
@@ -142,7 +142,7 @@ export default function Profilo() {
                     type="text"
                     className="form-control"
                     id="cognome"
-                    value={userData.cognome}
+                    value={userData.last}
                     readOnly
                     style={{ backgroundColor: "#e9ecef" }}
                   />
@@ -172,7 +172,7 @@ export default function Profilo() {
                   <a
                     href="#"
                     className="text-decoration-none fw-bold"
-                    style={{ color: "#006643" }} // Adjust color to match image green if needed, or use text-success
+                    style={{ color: "#006643" }}
                   >
                     Aggiorna password
                   </a>
@@ -201,10 +201,9 @@ export default function Profilo() {
                   <label htmlFor="sesso" className="active">
                     Sesso *
                   </label>
-                  <select className="form-select" id="sesso" defaultValue={userData.sesso}>
+                  <select className="form-control" id="sesso" value={userData.sex} onChange={() => {}}>
                     <option value="Maschio">Maschio</option>
                     <option value="Femmina">Femmina</option>
-                    <option value="Altro">Altro</option>
                   </select>
                 </div>
               </div>

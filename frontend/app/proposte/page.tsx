@@ -1,40 +1,41 @@
-import Link from 'next/link'
-import Breadcrumb from '../components/Breadcrumb'
-import PropostaCard from '../components/PropostaCard'
+"use client"
+
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { ApiError } from "next/dist/server/api-utils"
+
+import Breadcrumb from "@/app/components/Breadcrumb"
+import PropostaCard from "@/app/components/PropostaCard"
+import { getProposals } from "@/lib/api"
+import { Proposta } from "../../../shared/models"
 
 export default function ProposteList() {
-  const proposals = [
-    {
-      id: 1,
-      title: "Creare una pista ciclabile tra Piazza Dante e l'Università",
-      votes: "1.0k",
-      tag: "Mobilità",
-      author: "@youssef",
-      date: "27/02/2026",
-      description: "Proposta per creare un collegamento ciclabile sicuro tra Piazza Dante e l'Università di Trento (Povo).",
-      status: "In discussione"
-    },
-    {
-      id: 2,
-      title: "Riqualificazione Parco delle Albere",
-      votes: "856",
-      tag: "Verde Urbano",
-      author: "@maria",
-      date: "25/02/2026",
-      description: "Installazione di nuove panchine e aree gioco per bambini nel parco.",
-      status: "Aperta"
-    },
-    {
-      id: 3,
-      title: "Illuminazione pubblica via Belenzani",
-      votes: "432",
-      tag: "Sicurezza",
-      author: "@luca",
-      date: "20/02/2026",
-      description: "Potenziamento dell'illuminazione notturna per migliorare la sicurezza.",
-      status: "Chiusa"
+  const [proposals, setProposals] = useState<Proposta[]>([])
+  
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchProposals = async () => {
+      try {
+        const res = await getProposals()
+        setProposals(res.data)
+      } catch (err: unknown) {
+        if (err instanceof ApiError) {
+          setError(err.message)
+        }
+      }
     }
-  ]
+
+    fetchProposals()
+  }, [])
+
+  if (error) {
+    return <div className="container my-4">{error}</div>
+  }
+
+  if (proposals.length === 0) {
+    return <div className="container my-4">Nessuna proposta disponibile.</div>
+  }
 
   return (
     <div className="container my-4">

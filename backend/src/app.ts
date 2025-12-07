@@ -1,45 +1,32 @@
 import express, {
-  type Request,
-  type Response,
   type Application,
-} from "express";
-import cors from "cors";
-import { config } from "./config.js";
-import { pool } from "./database.js";
+} from "express"
+import cors from "cors"
+
+import getEnvVar from "../../shared/env.js"
+import proposteRouter from "./routes/proposte.js"
+import authRouter from "./routes/auth.js"
 
 export function createApp(): Application {
-  const app = express();
+  const app = express()
 
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || origin === config.frontendUrl) {
-          callback(null, true);
+        if (!origin || origin === getEnvVar("FRONTEND_URL")) {
+          callback(null, true)
         } else {
-          callback(new Error("Not allowed by CORS"));
+          callback(new Error("Not allowed by CORS"))
         }
       },
+      credentials: true,
     }),
-  );
+  )
 
-  app.use(express.json());
+  app.use(express.json())
 
-  app.get("/", async (_req: Request, res: Response) => {
-    try {
-      const result = await pool.query("SELECT NOW()");
+  app.use("/proposte", proposteRouter)
+  app.use("/auth", authRouter)
 
-      res.json({
-        message: "Database connected successfully",
-        timestamp: result.rows[0].now,
-      });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({
-        error: "Database connection failed",
-        details: err instanceof Error ? err.message : String(err),
-      });
-    }
-  });
-
-  return app;
+  return app
 }

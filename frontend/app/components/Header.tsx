@@ -1,6 +1,28 @@
-import Link from "next/link";
+"use client"
+
+import { useEffect, useState } from "react"
+import Link from "next/link"
+
+import { getUserData, logout } from "@/lib/local"
 
 export default function Header() {
+  const [userName, setUserName] = useState<string | null>(null)
+
+  useEffect(() => {
+    const update = () => {
+      const user = getUserData()
+      if (user) {
+        setUserName(user.first)
+      } else {
+        setUserName(null)
+      }
+    }
+
+    update()
+    window.addEventListener("authChange", update)
+    return () => window.removeEventListener("authChange", update)
+  }, [])
+
   return (
     <header className="it-header-wrapper">
       <div className="it-header-slim-wrapper">
@@ -19,22 +41,99 @@ export default function Header() {
 
                 <div className="it-header-slim-right-zone" role="navigation">
                   <div className="it-access-top-wrapper">
-                    <a
-                      className="btn btn-primary btn-icon btn-full"
-                      href="/accedi"
-                      aria-label="Accedi all'area personale"
-                    >
-                      <span className="rounded-icon">
-                        <svg
-                          className="icon icon-primary"
-                          role="presentation"
-                          focusable="false"
+                    {userName ? (
+                      <div className="nav-item dropdown">
+                        <style>
+                          {`
+                            button[aria-expanded="true"] .arrow-icon {
+                              transform: rotate(180deg);
+                            }
+                          `}
+                        </style>
+
+                        <Link
+                          className="btn btn-outline-primary btn-icon btn-full dropdown-toggle"
+                          data-bs-toggle="dropdown"
+                          aria-haspopup="true"
+                          aria-expanded="false"
+                          href="#"
                         >
-                          <use href="/svg/sprites.svg#it-user"></use>
-                        </svg>
-                      </span>
-                      <span className="d-none d-lg-block">Accedi</span>
-                    </a>
+                          <span className="d-none d-lg-block">
+                            Ciao, {userName}
+                          </span>
+
+                          <svg
+                            className="icon icon-sm icon-white arrow-icon"
+                            style={{ transition: "transform 0.3s ease" }}
+                          >
+                            <use href="/svg/sprites.svg#it-expand"></use>
+                          </svg>
+                        </Link>
+
+                        <div className="dropdown-menu" aria-labelledby="userDropdown">
+                          <div className="row">
+                            <div className="col-12">
+                              <div className="link-list-wrapper">
+                                <ul className="link-list">
+                                  <li>
+                                    <Link className="list-item left-icon text-nowrap" href="/profilo">
+                                      <svg className="icon icon-sm icon-primary left">
+                                        <use href="/svg/sprites.svg#it-user"></use>
+                                      </svg>
+                                      <span className="text-nowrap ms-2">Dati personali</span>
+                                    </Link>
+
+                                    <Link className="list-item left-icon text-nowrap" href="/profilo#mie-proposte">
+                                      <svg className="icon icon-sm icon-primary left">
+                                        <use href="/svg/sprites.svg#it-file"></use>
+                                      </svg>
+                                      <span className="text-nowrap ms-2">Le mie proposte</span>
+                                    </Link>
+
+                                    <Link className="list-item left-icon text-nowrap" href="/profilo#preferiti">
+                                      <svg className="icon icon-sm left" style={{ color: "#007a29" }}>
+                                        <use href="/svg/custom.svg#heart"></use>
+                                      </svg>
+                                      <span className="text-nowrap ms-2">Preferiti</span>
+                                    </Link>
+                                  </li>
+
+                                  <li><span className="divider"></span></li>
+
+                                  <li>
+                                    <Link
+                                      className="list-item"
+                                      href="/"
+                                      onClick={() => { logout() }}
+                                    >
+                                      <svg className="icon icon-sm icon-primary left">
+                                        <use href="/svg/sprites.svg#it-link"></use>
+                                      </svg>
+                                      <span className="text-nowrap ms-2">Esci</span>
+                                    </Link>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Link
+                        className="btn btn-primary btn-icon btn-full"
+                        href="/accedi"
+                      >
+                        <span className="rounded-icon">
+                          <svg
+                            className="icon icon-primary"
+                          >
+                            <use href="/svg/sprites.svg#it-user"></use>
+                          </svg>
+                        </span>
+
+                        <span className="d-none d-lg-block">Accedi</span>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>
@@ -63,8 +162,6 @@ export default function Header() {
                     <a
                       className="search-link rounded-icon"
                       href="#"
-                      data-bs-toggle="modal"
-                      data-bs-target="#search-modal"
                     >
                       <svg
                         className="icon"
@@ -104,17 +201,6 @@ export default function Header() {
                   </svg>
                 </button>
                 <div className="navbar-collapsable" id="nav1">
-                  <div className="overlay"></div>
-                  <div className="close-div">
-                    <button className="btn close-menu" type="button">
-                      <span className="visually-hidden">
-                        Nascondi la navigazione
-                      </span>
-                      <svg className="icon">
-                        <use href="/svg/sprites.svg#it-close-big"></use>
-                      </svg>
-                    </button>
-                  </div>
                   <div className="menu-wrapper">
                     <ul className="navbar-nav">
                       <li className="nav-item">
