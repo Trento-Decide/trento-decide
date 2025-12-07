@@ -1,6 +1,32 @@
-"use client";
+"use client"
+
+import { useState } from "react"
+
+import { useRouter } from "next/navigation"
+import { ApiError } from "next/dist/server/api-utils"
+
+import { login } from "@/lib/api"
 
 export default function Accedi() {
+  const [error, setError] = useState<string | null>(null)
+
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    const email = (e.currentTarget.elements.namedItem("email") as HTMLInputElement).value
+    const password = (e.currentTarget.elements.namedItem("password") as HTMLInputElement).value
+
+    try {
+      await login(email, password)
+      router.push("/profilo")
+    } catch (err) {
+      if (err instanceof ApiError)
+        setError(err.message)
+    }
+  }
+
   return (
     <div className="container py-5">
       <div className="row justify-content-center">
@@ -8,7 +34,7 @@ export default function Accedi() {
           <div className="card card-teaser rounded shadow">
             <div className="card-body">
               <h1 className="title-xxxlarge mb-5">Accedi</h1>
-              <form>
+              <form onSubmit={handleSubmit}>
                 <div className="form-group mb-5">
                   <label htmlFor="email" className="active">
                     Indirizzo email
@@ -37,9 +63,12 @@ export default function Accedi() {
                     />
                   </div>
                 </div>
+
+                {error && <div className="alert alert-danger">{error}</div>}
+
                 <div className="d-grid gap-2 mt-5">
                   <button type="submit" className="btn btn-primary btn-lg">
-                    Login
+                    {"Login"}
                   </button>
                 </div>
                 <div className="text-center mt-3">
@@ -69,5 +98,5 @@ export default function Accedi() {
         </div>
       </div>
     </div>
-  );
+  )
 }

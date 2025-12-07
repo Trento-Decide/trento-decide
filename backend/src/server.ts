@@ -1,17 +1,32 @@
-import { config } from "./config.js";
-import { pool } from "./database.js";
-import { createApp } from "./app.js";
+import "dotenv/config"
 
-const app = createApp();
+import getEnvVar from "../../shared/env.js"
+import { pool, initDevDb } from "./database.js"
+import { createApp } from "./app.js"
 
-const server = app.listen(config.port, () => {
-  console.log(`Backend listening at http://localhost:${config.port}`);
-});
+// Se siamo in fase di sviluppo inizializza il database con valori fasulli
+if (getEnvVar("NODE_ENV") === "development") {
+  try {
+    await initDevDb()
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const app = createApp()
+
+const port = Number(getEnvVar("PORT"))
+
+const server = app.listen(port, () => {
+  console.log(`Backend listening at http://localhost:${port}`)
+})
 
 process.on("SIGINT", async () => {
-  console.log("Shutting down gracefully...");
-  server.close();
-  await pool.end();
-  console.log("Database pool closed.");
-  process.exit(0);
-});
+  console.log("Shutting down gracefully...")
+  server.close()
+  
+  await pool.end()
+  console.log("Database pool closed.")
+
+  process.exit(0)
+})

@@ -1,3 +1,11 @@
+## Database
+
+```bash
+psql -U postgres -c "CREATE DATABASE trentodecide;"
+cd backend/src/sql
+psql -U postgres -d trentodecide -f init.sql
+```
+
 ## Sviluppo
 
 1. Clona la repository
@@ -26,6 +34,8 @@
    ```bash
    npm run dev
    ```
+
+6. L'applicazione viene riavviata automaticamente al cambiamento del codice.
 
 ## Stack
 
