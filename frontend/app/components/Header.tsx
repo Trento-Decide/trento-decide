@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { getUserData, logout } from "@/lib/local"
 
 export default function Header() {
   const [userName, setUserName] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     const update = () => {
@@ -22,6 +27,20 @@ export default function Header() {
     window.addEventListener("authChange", update)
     return () => window.removeEventListener("authChange", update)
   }, [])
+
+  useEffect(() => {
+    const q = searchParams?.get("q") ?? ""
+    setSearch(q)
+  }, [searchParams])
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const q = search.trim()
+    if (!q) return
+    router.push(`/cerca?q=${encodeURIComponent(q)}`)
+  }
+
+  const isActive = (href: string) => pathname?.startsWith(href)
 
   return (
     <header className="it-header-wrapper">
@@ -40,115 +59,116 @@ export default function Header() {
                 </a>
 
                 <div className="it-header-slim-right-zone" role="navigation">
-                  <div className="it-access-top-wrapper">
-                    {userName ? (
-                      <div className="nav-item dropdown">
-                        <style>
-                          {`
-                            button[aria-expanded="true"] .arrow-icon {
-                              transform: rotate(180deg);
-                            }
-                          `}
-                        </style>
-
-                        <Link
-                          className="btn btn-outline-primary btn-icon btn-full dropdown-toggle"
-                          data-bs-toggle="dropdown"
-                          aria-haspopup="true"
-                          aria-expanded="false"
-                          href="#"
+                  {userName ? (
+                    <div className="nav-item dropdown">
+                      <button
+                        className="btn btn-light dropdown-toggle d-flex align-items-center gap-2 px-3 py-1 header-user-btn"
+                        data-bs-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        type="button"
+                      >
+                        <span
+                          className="rounded-circle d-inline-flex align-items-center justify-content-center"
+                          style={{
+                            width: 28,
+                            height: 28,
+                            fontWeight: 700,
+                            fontSize: "0.9rem",
+                            backgroundColor: "#ff4b8b",
+                            color: "#ffffff",
+                          }}
                         >
-                          <span className="d-none d-lg-block">
-                            Ciao, {userName}
-                          </span>
+                          {userName.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="d-none d-lg-block text-lowercase header-username">
+                          {userName}
+                        </span>
+                        <svg className="icon icon-sm">
+                          <use href="/svg/sprites.svg#it-expand"></use>
+                        </svg>
+                      </button>
 
-                          <svg
-                            className="icon icon-sm icon-white arrow-icon"
-                            style={{ transition: "transform 0.3s ease" }}
-                          >
-                            <use href="/svg/sprites.svg#it-expand"></use>
-                          </svg>
-                        </Link>
+                      <div className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <div className="row">
+                          <div className="col-12">
+                            <div className="link-list-wrapper">
+                              <ul className="link-list">
+                                <li>
+                                  <Link className="list-item left-icon text-nowrap" href="/profilo">
+                                    <svg className="icon icon-sm icon-primary left">
+                                      <use href="/svg/sprites.svg#it-user"></use>
+                                    </svg>
+                                    <span className="text-nowrap ms-2">Dati personali</span>
+                                  </Link>
 
-                        <div className="dropdown-menu" aria-labelledby="userDropdown">
-                          <div className="row">
-                            <div className="col-12">
-                              <div className="link-list-wrapper">
-                                <ul className="link-list">
-                                  <li>
-                                    <Link className="list-item left-icon text-nowrap" href="/profilo">
-                                      <svg className="icon icon-sm icon-primary left">
-                                        <use href="/svg/sprites.svg#it-user"></use>
-                                      </svg>
-                                      <span className="text-nowrap ms-2">Dati personali</span>
-                                    </Link>
+                                  <Link className="list-item left-icon text-nowrap" href="/profilo#mie-proposte">
+                                    <svg className="icon icon-sm icon-primary left">
+                                      <use href="/svg/sprites.svg#it-file"></use>
+                                    </svg>
+                                    <span className="text-nowrap ms-2">Le mie proposte</span>
+                                  </Link>
 
-                                    <Link className="list-item left-icon text-nowrap" href="/profilo#mie-proposte">
-                                      <svg className="icon icon-sm icon-primary left">
-                                        <use href="/svg/sprites.svg#it-file"></use>
-                                      </svg>
-                                      <span className="text-nowrap ms-2">Le mie proposte</span>
-                                    </Link>
+                                  <Link className="list-item left-icon text-nowrap" href="/profilo#preferiti">
+                                    <svg className="icon icon-sm left" style={{ color: "#007a29" }}>
+                                      <use href="/svg/custom.svg#heart"></use>
+                                    </svg>
+                                    <span className="text-nowrap ms-2">Preferiti</span>
+                                  </Link>
+                                </li>
 
-                                    <Link className="list-item left-icon text-nowrap" href="/profilo#preferiti">
-                                      <svg className="icon icon-sm left" style={{ color: "#007a29" }}>
-                                        <use href="/svg/custom.svg#heart"></use>
-                                      </svg>
-                                      <span className="text-nowrap ms-2">Preferiti</span>
-                                    </Link>
-                                  </li>
+                                <li><span className="divider"></span></li>
 
-                                  <li><span className="divider"></span></li>
-
-                                  <li>
-                                    <Link
-                                      className="list-item"
-                                      href="/"
-                                      onClick={() => { logout() }}
-                                    >
-                                      <svg className="icon icon-sm icon-primary left">
-                                        <use href="/svg/sprites.svg#it-link"></use>
-                                      </svg>
-                                      <span className="text-nowrap ms-2">Esci</span>
-                                    </Link>
-                                  </li>
-                                </ul>
-                              </div>
+                                <li>
+                                  <a
+                                    href="#"
+                                    className="list-item left-icon text-nowrap list-item-exit"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      logout()
+                                      window.location.href = "/"
+                                    }}
+                                  >
+                                    <svg className="icon icon-sm left">
+                                      <use href="/svg/sprites.svg#it-link"></use>
+                                    </svg>
+                                    <span className="text-nowrap ms-2">Esci</span>
+                                  </a>
+                                </li>
+                              </ul>
                             </div>
                           </div>
                         </div>
                       </div>
-                    ) : (
-                      <Link
-                        className="btn btn-primary btn-icon btn-full"
-                        href="/accedi"
-                      >
-                        <span className="rounded-icon">
-                          <svg
-                            className="icon icon-primary"
-                          >
-                            <use href="/svg/sprites.svg#it-user"></use>
-                          </svg>
-                        </span>
-
-                        <span className="d-none d-lg-block">Accedi</span>
-                      </Link>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <Link
+                      className="btn btn-primary btn-icon btn-full d-flex align-items-center gap-2"
+                      href="/accedi"
+                    >
+                      <span className="rounded-icon">
+                        <svg className="icon icon-primary">
+                          <use href="/svg/sprites.svg#it-user"></use>
+                        </svg>
+                      </span>
+                      <span className="d-none d-lg-block">Accedi</span>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
       <div className="it-header-center-wrapper">
         <div className="container">
-          <div className="row">
+          <div className="row align-items-center">
             <div className="col-12">
               <div className="it-header-center-content-wrapper">
                 <div className="it-brand-wrapper">
-                  <Link href="/">
-                    <svg className="icon">
+                  <Link href="/" className="d-flex align-items-center text-decoration-none">
+                    <svg className="icon me-2">
                       <use href="/svg/sprites.svg#it-pa"></use>
                     </svg>
                     <div className="it-brand-text">
@@ -156,29 +176,35 @@ export default function Header() {
                     </div>
                   </Link>
                 </div>
+
                 <div className="it-right-zone">
-                  <div className="it-search-wrapper">
-                    <span className="d-none d-md-block">Cerca</span>
-                    <a
-                      className="search-link rounded-icon"
-                      href="#"
-                    >
-                      <svg
-                        className="icon"
-                        role="presentation"
-                        focusable="false"
-                      >
-                        <use href="/svg/sprites.svg#it-search"></use>
-                      </svg>
-                      <span className="visually-hidden">Cerca</span>
-                    </a>
-                  </div>
+                  <form
+                    className="it-search-wrapper d-flex align-items-center"
+                    onSubmit={handleSearchSubmit}
+                  >
+                    <div className="input-group">
+                      <span className="input-group-text bg-white border-end-0">
+                        <svg className="icon" aria-hidden="true">
+                          <use href="/svg/sprites.svg#it-search"></use>
+                        </svg>
+                      </span>
+                      <input
+                        type="search"
+                        className="form-control border-start-0"
+                        placeholder="Cerca proposte, sondaggi"
+                        aria-label="Cerca proposte, sondaggi"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
+                    </div>
+                  </form>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
       <div className="it-header-navbar-wrapper">
         <div className="container">
           <div className="row">
@@ -204,8 +230,43 @@ export default function Header() {
                   <div className="menu-wrapper">
                     <ul className="navbar-nav">
                       <li className="nav-item">
-                        <Link className="nav-link" href="/proposte">
-                          <span>Proposte</span>
+                        <Link
+                          className={`nav-link ${isActive("/popolari") ? "active" : ""}`}
+                          href="/popolari"
+                        >
+                          <span>Popolari</span>
+                        </Link>
+                      </li>
+                      <li className="nav-item">
+                        <Link
+                          className={`nav-link ${isActive("/novita") ? "active" : ""}`}
+                          href="/novita"
+                        >
+                          <span>Novità</span>
+                        </Link>
+                      </li>
+                      <li className="nav-item">
+                        <Link
+                          className={`nav-link ${isActive("/preferiti") ? "active" : ""}`}
+                          href="/preferiti"
+                        >
+                          <span>Preferiti</span>
+                        </Link>
+                      </li>
+                      <li className="nav-item">
+                        <Link
+                          className={`nav-link ${isActive("/proposte/nuova") ? "active" : ""}`}
+                          href="/proposte/nuova"
+                        >
+                          <span>Crea</span>
+                        </Link>
+                      </li>
+                      <li className="nav-item">
+                        <Link
+                          className={`nav-link ${isActive("/regolamento") ? "active" : ""}`}
+                          href="/regolamento"
+                        >
+                          <span>Regolamento</span>
                         </Link>
                       </li>
                     </ul>

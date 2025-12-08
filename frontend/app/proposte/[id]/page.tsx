@@ -6,14 +6,14 @@ import { useParams } from "next/navigation"
 import { ApiError } from "next/dist/server/api-utils"
 
 import Breadcrumb from "@/app/components/Breadcrumb"
-import { getProposal } from "@/lib/api"
+import { getProposal, addFavouriteProposal, removeFavouriteProposal } from "@/lib/api"
 import { Proposta } from "../../../../shared/models"
+import { VoteWidget } from "./VoteWidget"
 
 export default function PropostaDettaglio() {
   const { id } = useParams() as { id?: number }
   const [isFavourited, setIsFavourited] = useState(false)
   const [proposal, setProposal] = useState<Proposta | null>(null)
-
   const [error, setError] = useState<string | null>(null)
 
   const categoryIcon: Record<string, string> = {
@@ -34,7 +34,8 @@ export default function PropostaDettaglio() {
     const fetchProposal = async () => {
       setError(null)
       try {
-        const res = await getProposal(id)
+        const numericId = Number(id)
+        const res = await getProposal(numericId)
         setProposal(res.data)
         setIsFavourited(Boolean(res.data.isFavourited))
       } catch (err: unknown) {
@@ -47,8 +48,25 @@ export default function PropostaDettaglio() {
     fetchProposal()
   }, [id])
 
+  const handleFavouriteClick = async () => {
+    if (!proposal) return
+
+    try {
+      if (isFavourited) {
+        const res = await removeFavouriteProposal(proposal.id)
+        setIsFavourited(res.isFavourited)
+      } else {
+        const res = await addFavouriteProposal(proposal.id)
+        setIsFavourited(res.isFavourited)
+      }
+    } catch (err) {
+      console.error("Errore nella gestione dei preferiti:", err)
+    }
+  }
+
   if (error) return <div className="container my-4">Errore: {error}</div>
   if (!proposal) return <div className="container my-4">Nessuna proposta disponibile.</div>
+
   return (
     <div className="container my-4">
       <Breadcrumb
@@ -59,19 +77,11 @@ export default function PropostaDettaglio() {
 
       <div className="row">
         <div className="col-md-1 text-center">
-          <div className="d-flex flex-column align-items-center">
-            <button className="btn btn-link p-0 text-primary" style={{ fontSize: "2rem", lineHeight: 1 }}>
-              <svg className="icon icon-primary" aria-hidden="true">
-                <use href="/svg/sprites.svg#it-arrow-up-circle"></use>
-              </svg>
-            </button>
-            <span className="fw-bold text-primary" style={{ fontSize: "1.2rem" }}>{proposal.votes}</span>
-            <button className="btn btn-link p-0 text-danger" style={{ fontSize: "2rem", lineHeight: 1 }} aria-label="Downvote">
-              <svg className="icon icon-danger" aria-hidden="true">
-                <use href="/svg/sprites.svg#it-arrow-down-circle"></use>
-              </svg>
-            </button>
-          </div>
+          <VoteWidget
+            proposalId={proposal.id}
+            initialVotes={proposal.votes}
+            onVotesChange={(newTotal) => setProposal({ ...proposal, votes: newTotal })}
+          />
         </div>
 
         <div className="col-md-10">
@@ -103,7 +113,7 @@ export default function PropostaDettaglio() {
             <svg
               className="icon"
               role="button"
-              onClick={() => setIsFavourited(!isFavourited)}
+              onClick={handleFavouriteClick}
               aria-label={isFavourited ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}
               style={{ cursor: "pointer", color: "#ff4d8a" }}
             >
