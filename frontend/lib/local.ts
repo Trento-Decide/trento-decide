@@ -21,6 +21,7 @@ export const logout = () => {
   if (typeof window !== "undefined") {
     localStorage.removeItem("accessToken")
     localStorage.removeItem("userData")
+    localStorage.removeItem("providerToken")
     try {
       window.dispatchEvent(new CustomEvent("authChange"))
     } catch (err) {

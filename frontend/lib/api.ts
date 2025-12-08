@@ -10,6 +10,11 @@ const getToken = () => {
   return localStorage.getItem("accessToken")
 }
 
+const getProviderToken = () => {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem("providerToken")
+}
+
 const getAuthHeaders = (includeJson = true) => {
   const headers: Record<string, string> = {}
 
@@ -36,6 +41,30 @@ const handleResponse = async <T>(res: Response): Promise<T> => {
 
   return body as T
 }
+
+export const providerLogin = async () => {
+  const url =`${apiUrl}/auth/provider`
+
+  const res = await fetch(url, { method: "GET" })
+
+  const body = (await handleResponse(res)) as { providerToken: string }
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem("providerToken", body.providerToken)
+  }
+}
+
+export const register = async (username : string, email : string, password: string) => {
+  const url = `${apiUrl}/auth/register`
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, email, password })
+  })
+
+  await handleResponse(res)
+} 
 
 export const login = async (email: string, password: string) => {
   const url = `${apiUrl}/auth/login`

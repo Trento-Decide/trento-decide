@@ -1,7 +1,7 @@
 INSERT INTO users (username, email, password_hash, first_name, last_name, sex)
 VALUES
-    ('alice','alice@example.com','','Alice','Rossi','Femmina'),
-    ('bob','bob@example.com','','Bob','Bianchi','Maschio');
+    ('alice','alice@example.com','$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa','Alice','Rossi','Femmina'),
+    ('bob','bob@example.com','$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa','Bob','Bianchi','Maschio');
 
 INSERT INTO proposals (title, description, category_id, status, author_id)
 VALUES
