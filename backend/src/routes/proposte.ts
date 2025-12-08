@@ -127,4 +127,250 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request, res: Respo
   }
 })
 
+router.post("/:id/vota", conditionalAuthenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = req.user
+    if (!user) {
+      return res.status(401).json({ error: "Authentication required" })
+    }
+    const userId = user.id
+
+    const proposalId = Number(req.params.id)
+    if (!Number.isInteger(proposalId)) {
+      return res.status(400).json({ error: "Invalid proposal id" })
+    }
+
+    const existsResult = await pool.query(
+      `SELECT 1 FROM proposals WHERE id = $1`,
+      [proposalId],
+    )
+    if (existsResult.rowCount === 0) {
+      return res.status(404).json({ error: "Proposal not found" })
+    }
+
+    const { vote } = req.body as { vote?: number }
+    if (vote !== 1 && vote !== -1) {
+      return res.status(400).json({ error: "Invalid vote value" })
+    }
+    await pool.query(
+      `
+      INSERT INTO proposal_votes (user_id, proposal_id, vote)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id, proposal_id)
+      DO UPDATE SET vote = EXCLUDED.vote, created_at = CURRENT_TIMESTAMP
+      `,
+      [userId, proposalId, vote],
+    )
+
+    const totalResult = await pool.query(
+      `
+      SELECT COALESCE(SUM(vote), 0) AS total
+      FROM proposal_votes
+      WHERE proposal_id = $1
+      `,
+      [proposalId],
+    )
+
+    const totalVotes = Number(totalResult.rows[0].total)
+
+    await pool.query(
+      `
+      UPDATE proposals
+      SET vote_count = $1
+      WHERE id = $2
+      `,
+      [totalVotes, proposalId],
+    )
+
+    return res.status(200).json({ success: true, vote, totalVotes })
+  } catch (err) {
+    console.error("Vote error:", err)
+    return res.status(500).json({ error: "Failed to vote proposal" })
+  }
+})
+
+router.delete("/:id/vota", conditionalAuthenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = req.user
+    if (!user) {
+      return res.status(401).json({ error: "Authentication required" })
+    }
+    const userId = user.id
+
+    const proposalId = Number(req.params.id)
+    if (!Number.isInteger(proposalId)) {
+      return res.status(400).json({ error: "Invalid proposal id" })
+    }
+
+    const existsResult = await pool.query(
+      `SELECT 1 FROM proposals WHERE id = $1`,
+      [proposalId],
+    )
+    if (existsResult.rowCount === 0) {
+      return res.status(404).json({ error: "Proposal not found" })
+    }
+
+    await pool.query(
+      `
+      DELETE FROM proposal_votes
+      WHERE user_id = $1 AND proposal_id = $2
+      `,
+      [userId, proposalId],
+    )
+
+    const totalResult = await pool.query(
+      `
+      SELECT COALESCE(SUM(vote), 0) AS total
+      FROM proposal_votes
+      WHERE proposal_id = $1
+      `,
+      [proposalId],
+    )
+
+    const totalVotes = Number(totalResult.rows[0].total)
+    await pool.query(
+      `
+      UPDATE proposals
+      SET vote_count = $1
+      WHERE id = $2
+      `,
+      [totalVotes, proposalId],
+    )
+
+    return res.status(200).json({ success: true, totalVotes })
+  } catch (err) {
+    console.error("Delete vote error:", err)
+    return res.status(500).json({ error: "Failed to remove vote" })
+  }
+})
+
+router.get("/:id/vota", conditionalAuthenticateToken, async (req: Request, res: Response) => {
+  try {
+    const proposalId = Number(req.params.id)
+    if (!Number.isInteger(proposalId)) {
+      return res.status(400).json({ error: "Invalid proposal id" })
+    }
+
+    const user = req.user
+    if (!user) {
+      return res.status(200).json({ vote: null })
+    }
+    const userId = user.id
+
+    const result = await pool.query(
+      `
+      SELECT vote
+      FROM proposal_votes
+      WHERE user_id = $1 AND proposal_id = $2
+      `,
+      [userId, proposalId],
+    )
+
+    if (result.rowCount === 0) {
+      return res.status(200).json({ vote: null })
+    }
+
+    const vote = result.rows[0].vote as number
+    return res.status(200).json({ vote })
+  } catch (err) {
+    console.error("Get vote error:", err)
+    return res.status(500).json({ error: "Failed to fetch vote" })
+  }
+})
+
 export default router
+
+
+router.post("/:id/preferisco", conditionalAuthenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = req.user
+    if (!user) {
+      return res.status(401).json({ error: "Authentication required" })
+    }
+    const userId = user.id
+
+    const proposalId = Number(req.params.id)
+    if (!Number.isInteger(proposalId)) {
+      return res.status(400).json({ error: "Invalid proposal id" })
+    }
+
+    const existsResult = await pool.query(
+      `SELECT 1 FROM proposals WHERE id = $1`,
+      [proposalId],
+    )
+    if (existsResult.rowCount === 0) {
+      return res.status(404).json({ error: "Proposal not found" })
+    }
+
+    await pool.query(
+      `
+      INSERT INTO favorite_proposals (user_id, proposal_id)
+      VALUES ($1, $2)
+      ON CONFLICT (user_id, proposal_id) DO NOTHING
+      `,
+      [userId, proposalId],
+    )
+
+    return res.status(200).json({ success: true, isFavourited: true })
+  } catch (err) {
+    console.error("Add favorite error:", err)
+    return res.status(500).json({ error: "Failed to add favorite" })
+  }
+})
+
+router.delete("/:id/preferisco", conditionalAuthenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = req.user
+    if (!user) {
+      return res.status(401).json({ error: "Authentication required" })
+    }
+    const userId = user.id
+
+    const proposalId = Number(req.params.id)
+    if (!Number.isInteger(proposalId)) {
+      return res.status(400).json({ error: "Invalid proposal id" })
+    }
+
+    await pool.query(
+      `
+      DELETE FROM favorite_proposals
+      WHERE user_id = $1 AND proposal_id = $2
+      `,
+      [userId, proposalId],
+    )
+
+    return res.status(200).json({ success: true, isFavourited: false })
+  } catch (err) {
+    console.error("Remove favorite error:", err)
+    return res.status(500).json({ error: "Failed to remove favorite" })
+  }
+})
+
+router.get("/:id/preferisco", conditionalAuthenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = req.user
+    const proposalId = Number(req.params.id)
+    if (!Number.isInteger(proposalId)) {
+      return res.status(400).json({ error: "Invalid proposal id" })
+    }
+
+    if (!user) {
+      return res.status(200).json({ isFavourited: false })
+    }
+
+    const result = await pool.query(
+      `
+      SELECT 1
+      FROM favorite_proposals
+      WHERE user_id = $1 AND proposal_id = $2
+      `,
+      [user.id, proposalId],
+    )
+
+    const isFavourited = (result.rowCount ?? 0) > 0
+  return res.status(200).json({ isFavourited })
+  } catch (err) {
+    console.error("Get favorite error:", err)
+    return res.status(500).json({ error: "Failed to fetch favorite" })
+  }
+})

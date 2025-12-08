@@ -108,3 +108,99 @@ export const getProposal = async (id: number): Promise<{ data: Proposta }> => {
   const res = await fetch(url, { method: "GET", headers: getAuthHeaders(true) })
   return handleResponse(res)
 }
+
+export const getMyVoteForProposal = async (proposalId: number) => {
+  const url = new URL(`${apiUrl}/proposte/${proposalId}/vota`)
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+
+  const res = await fetch(url.toString(), {
+    method: "GET",
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : {},
+  })
+
+  const body = (await handleResponse(res)) as { vote: number | null }
+  return body.vote
+}
+
+export const voteOnProposal = async (proposalId: number, vote: 1 | -1) => {
+  const url = new URL(`${apiUrl}/proposte/${proposalId}/vota`)
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+  if (!token) throw new Error("Not authenticated")
+
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ vote }),
+  })
+
+  const body = (await handleResponse(res)) as { success: boolean; vote: number; totalVotes: number }
+  return body
+}
+
+export const removeVoteFromProposal = async (proposalId: number) => {
+  const url = new URL(`${apiUrl}/proposte/${proposalId}/vota`)
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+  if (!token) throw new Error("Not authenticated")
+
+  const res = await fetch(url.toString(), {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  const body = (await handleResponse(res)) as { success: boolean; totalVotes: number }
+  return body
+}
+
+export const addFavouriteProposal = async (proposalId: number) => {
+  const url = new URL(`${apiUrl}/proposte/${proposalId}/preferisco`)
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+  if (!token) throw new Error("Not authenticated")
+
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  const body = (await handleResponse(res)) as { success: boolean; isFavourited: boolean }
+  return body
+}
+
+export const removeFavouriteProposal = async (proposalId: number) => {
+  const url = new URL(`${apiUrl}/proposte/${proposalId}/preferisco`)
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+  if (!token) throw new Error("Not authenticated")
+
+  const res = await fetch(url.toString(), {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  const body = (await handleResponse(res)) as { success: boolean; isFavourited: boolean }
+  return body
+}
+
+export const getFavoriteForProposal = async (proposalId: number) => {
+  const url = new URL(`${apiUrl}/proposte/${proposalId}/favorite`)
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+
+  const res = await fetch(url.toString(), {
+    method: "GET",
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : {},
+  })
+
+  const body = (await handleResponse(res)) as { isFavourited: boolean }
+  return body.isFavourited
+}
