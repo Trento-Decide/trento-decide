@@ -278,9 +278,6 @@ router.get("/:id/vota", conditionalAuthenticateToken, async (req: Request, res: 
   }
 })
 
-export default router
-
-
 router.post("/:id/preferisco", conditionalAuthenticateToken, async (req: Request, res: Response) => {
   try {
     const user = req.user
@@ -374,3 +371,5 @@ router.get("/:id/preferisco", conditionalAuthenticateToken, async (req: Request,
     return res.status(500).json({ error: "Failed to fetch favorite" })
   }
 })
+
+export default router
