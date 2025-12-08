@@ -33,15 +33,15 @@ export default function Registrati() {
           <h5>SPID / CIE</h5>
           <p>Accedi con la tua identità digitale</p>
           <div className="d-flex flex-row align-items-center gap-3">
-            <button type="submit" className="btn btn-primary btn-re" onClick={handleProviderLogin}>
+            <button type="submit" className="btn btn-primary btn-re d-flex gap-3" onClick={handleProviderLogin}>
               <svg className="icon icon-white" aria-hidden="true">
-                <use href="/svg/sprites.svg#it-user"></use>
+                <use href="/svg/spid.svg"></use>
               </svg>
               <span>Login with SPID</span>
             </button>
-            <button type="submit" className="btn btn-primary btn-re" onClick={handleProviderLogin}>
+            <button type="submit" className="btn btn-primary btn-re d-flex gap-3" onClick={handleProviderLogin}>
               <svg className="icon icon-white" aria-hidden="true">
-                <use href="/svg/sprites.svg#it-user"></use>
+                <use href="/svg/cie.svg"></use>
               </svg>
               <span>Login with CIE</span>
             </button>
