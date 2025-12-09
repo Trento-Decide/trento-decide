@@ -1,76 +1,88 @@
-CREATE TYPE sex_enum AS ENUM ('Maschio', 'Femmina');
-
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    sex sex_enum NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE role (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR NOT NULL UNIQUE
 );
 
-CREATE TABLE categories (
-    id SERIAL PRIMARY KEY,
-    label VARCHAR(100) NOT NULL
+CREATE TABLE "user" (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR NOT NULL UNIQUE,
+  email VARCHAR NOT NULL UNIQUE,
+  password_hash VARCHAR NOT NULL,
+  notifications BOOLEAN NOT NULL DEFAULT FALSE,
+  role_id INTEGER NOT NULL REFERENCES role(id)
 );
 
-CREATE TABLE proposal_info (
-    title VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL,
-    category_id INTEGER REFERENCES categories(id)
+CREATE TABLE category (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR NOT NULL UNIQUE
 );
 
-CREATE TABLE proposals (
-    LIKE proposal_info INCLUDING ALL,
-    id SERIAL PRIMARY KEY,
-    status VARCHAR(50) NOT NULL,
-    vote_count INTEGER DEFAULT 0,
-    author_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE status (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR NOT NULL UNIQUE
 );
 
-CREATE TABLE proposal_version (
-    LIKE proposal_info INCLUDING ALL,
-    id SERIAL PRIMARY KEY,
-    proposal_id INTEGER REFERENCES proposals(id),
-    votes_at_edit INTEGER NOT NULL,
-    editor_id INTEGER REFERENCES users(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE poll (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR NOT NULL,
+  description VARCHAR NOT NULL,
+  category_id INTEGER NOT NULL REFERENCES category(id) ON DELETE CASCADE,
+  finish_date TIMESTAMPTZ NOT NULL,
+  creation_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE proposal_changes (
-    LIKE proposal_info INCLUDING ALL,
-    id SERIAL PRIMARY KEY,
-    proposal_id INTEGER REFERENCES proposals(id) ON DELETE CASCADE,
-    change_description TEXT,
-    editor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE proposal (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR NOT NULL,
+  description VARCHAR NOT NULL,
+  category_id INTEGER NOT NULL REFERENCES category(id) ON DELETE CASCADE,
+  creation_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  proposal_status_id INTEGER NOT NULL REFERENCES status(id)
 );
 
-CREATE TABLE proposal_votes (
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    proposal_id INTEGER REFERENCES proposals(id) ON DELETE CASCADE,
-    vote SMALLINT NOT NULL CHECK (vote IN (-1, 1)),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, proposal_id)
+CREATE TABLE proposal_status (
+  proposal_id INTEGER NOT NULL,
+  status_id INTEGER NOT NULL,
+  motivation VARCHAR,
+  PRIMARY KEY (proposal_id, status_id),
+  FOREIGN KEY (proposal_id) REFERENCES proposal(id) ON DELETE CASCADE,
+  FOREIGN KEY (status_id) REFERENCES status(id) ON DELETE CASCADE
 );
 
-CREATE TABLE favorite_proposals (
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    proposal_id INTEGER REFERENCES proposals(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, proposal_id)
+CREATE TABLE poll_choice (
+  id SERIAL PRIMARY KEY,
+  poll_id INTEGER NOT NULL REFERENCES poll(id) ON DELETE CASCADE,
+  choice_name VARCHAR NOT NULL
 );
 
-INSERT INTO categories (label) VALUES
-    ('Urbanistica'),
-    ('Ambiente'),
-    ('Sicurezza'),
-    ('Cultura'),
-    ('Istruzione'),
-    ('Innovazione'),
-    ('Mobilità e Trasporti'),
-    ('Welfare'),
-    ('Sport');
+ALTER TABLE poll_choice
+  ADD CONSTRAINT uq_poll_choice_per_poll UNIQUE (poll_id, choice_name);
+
+CREATE TABLE proposal_vote (
+  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  proposal_id INTEGER NOT NULL REFERENCES proposal(id) ON DELETE CASCADE,
+  value BOOLEAN NOT NULL,
+  PRIMARY KEY (user_id, proposal_id)
+);
+
+CREATE TABLE poll_vote (
+  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  poll_id INTEGER NOT NULL REFERENCES poll(id) ON DELETE CASCADE,
+  poll_choice_id INTEGER NOT NULL REFERENCES poll_choice(id),
+  PRIMARY KEY (user_id, poll_id)
+);
+
+CREATE TABLE moderation (
+  id SERIAL PRIMARY KEY,
+  motivation VARCHAR NOT NULL,
+  author_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  action_end TIMESTAMPTZ
+);
+
+CREATE TABLE user_view (
+  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  proposal_id INTEGER NOT NULL REFERENCES proposal(id) ON DELETE CASCADE,
+  last_seen TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (user_id, proposal_id)
+);
