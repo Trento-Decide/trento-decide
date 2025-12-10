@@ -1,6 +1,25 @@
 import Link from "next/link"
 import { theme } from "@/lib/theme"
 
+const ADMINISTRATION_LINKS = [
+  { label: "Organi di governo", href: "https://www.comune.trento.it/Aree-tematiche/Istituzioni/Organi-istituzionali" },
+  { label: "Struttura organizzativa", href: "https://www.comune.trento.it/Comune/Struttura-organizzativa" },
+  { label: "Documenti e dati", href: "https://www.comune.trento.it/Comune/Documenti-e-dati" },
+]
+
+const SERVICE_LINKS = [
+  { label: "Proposte popolari", href: "/popolari" },
+  { label: "Novità", href: "/novita" },
+  { label: "Crea una proposta", href: "/proposte/nuova" },
+  { label: "Regolamento", href: "/regolamento" },
+]
+
+const LEGAL_LINKS = [
+  { label: "Privacy", href: "/privacy" },
+  { label: "Note legali", href: "/note-legali" },
+  { label: "Dichiarazione di accessibilità", href: "/accessibilita" },
+]
+
 export default function Footer() {
   const linkStyle = { color: theme.text.footerText, textDecoration: "none" }
   const headingStyle = {
@@ -14,11 +33,7 @@ export default function Footer() {
     <footer className="it-footer" style={{ backgroundColor: theme.footer, color: theme.text.footerText }}>
       <div className="it-footer-main" style={{ backgroundColor: "transparent" }}>
         <div className="container">
-          {/* BRAND */}
-          <section className="mb-4">
-            <div className="row">
-              <div className="col-12 d-flex align-items-center">
-          {/* BRAND */}
+          
           <section className="mb-4">
             <div className="row">
               <div className="col-12 d-flex align-items-center">
@@ -37,83 +52,48 @@ export default function Footer() {
             </div>
           </section>
 
-          {/* COLONNE PRINCIPALI (SINTETICHE) */}
           <section className="pb-4">
             <div className="row">
-              {/* AMMINISTRAZIONE */}
+              
               <div className="col-lg-4 col-md-6 col-sm-12 mb-4 mb-lg-0">
                 <h4 className="text-uppercase mb-3" style={headingStyle}>AMMINISTRAZIONE</h4>
                 <div className="link-list-wrapper">
                   <ul className="link-list">
-                    <li>
-                      <a
-                        href="https://www.comune.trento.it/Aree-tematiche/Istituzioni/Organi-istituzionali"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="list-item ps-0"
-                        style={linkStyle}
-                      >
-                        Organi di governo
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href="https://www.comune.trento.it/Comune/Struttura-organizzativa"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="list-item ps-0"
-                        style={linkStyle}
-                      >
-                        Struttura organizzativa
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href="https://www.comune.trento.it/Comune/Documenti-e-dati"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="list-item ps-0"
-                        style={linkStyle}
-                      >
-                        Documenti e dati
-                      </a>
-                    </li>
+                    {ADMINISTRATION_LINKS.map((link, i) => (
+                      <li key={i}>
+                        <a
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="list-item ps-0"
+                          style={linkStyle}
+                        >
+                          {link.label}
+                        </a>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
 
-              {/* SERVIZI / PARTECIPAZIONE */}
               <div className="col-lg-4 col-md-6 col-sm-12 mb-4 mb-lg-0">
                 <h4 className="text-uppercase mb-3" style={headingStyle}>SERVIZI</h4>
                 <div className="link-list-wrapper">
                   <ul className="link-list">
-                    <li>
-                      <Link href="/popolari" className="list-item ps-0" style={linkStyle}>
-                        Proposte popolari
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/novita" className="list-item ps-0" style={linkStyle}>
-                        Novità
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/proposte/nuova" className="list-item ps-0" style={linkStyle}>
-                        Crea una proposta
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/regolamento" className="list-item ps-0" style={linkStyle}>
-                        Regolamento
-                      </Link>
-                    </li>
+                    {SERVICE_LINKS.map((link, i) => (
+                      <li key={i}>
+                        <Link href={link.href} className="list-item ps-0" style={linkStyle}>
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
 
-              {/* CONTATTI + LINK LEGALI */}
               <div className="col-lg-4 col-md-12 col-sm-12">
                 <h4 className="text-uppercase mb-3" style={headingStyle}>CONTATTI</h4>
+                
                 <ul className="list-unstyled small mb-3" style={{ color: theme.text.footerMuted }}>
                   <li>Comune di Trento</li>
                   <li>via Belenzani, 19 - 38122 Trento</li>
@@ -130,28 +110,20 @@ export default function Footer() {
 
                 <div className="link-list-wrapper">
                   <ul className="link-list small">
-                    <li>
-                      <Link href="/privacy" className="list-item ps-0" style={linkStyle}>
-                        Privacy
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/note-legali" className="list-item ps-0" style={linkStyle}>
-                        Note legali
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/accessibilita" className="list-item ps-0" style={linkStyle}>
-                        Dichiarazione di accessibilità
-                      </Link>
-                    </li>
+                    {LEGAL_LINKS.map((link, i) => (
+                      <li key={i}>
+                        <Link href={link.href} className="list-item ps-0" style={linkStyle}>
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
+
             </div>
           </section>
 
-          {/* RIGA FINALE COOKIE / MAPPA SITO */}
           <section className="pt-3 mt-3 border-top border-light border-opacity-25">
             <div className="row">
               <div className="col-12 d-flex flex-column flex-md-row justify-content-between small" style={{ color: theme.text.footerMuted }}>
@@ -170,6 +142,7 @@ export default function Footer() {
               </div>
             </div>
           </section>
+
         </div>
       </div>
     </footer>
