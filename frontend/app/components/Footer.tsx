@@ -18,6 +18,10 @@ export default function Footer() {
           <section className="mb-4">
             <div className="row">
               <div className="col-12 d-flex align-items-center">
+          {/* BRAND */}
+          <section className="mb-4">
+            <div className="row">
+              <div className="col-12 d-flex align-items-center">
                 <div className="it-brand-wrapper">
                   <Link href="/" className="d-flex align-items-center text-decoration-none" style={linkStyle}>
                     <svg className="icon me-2" style={{ color: theme.text.light, fill: "currentColor" }}>
