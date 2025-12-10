@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from "express"
 
-import type { Proposta, Filters } from "../../../shared/models.js"
+import type { Proposta } from "../../../shared/models.js"
 import { pool } from "../database.js"
 import { conditionalAuthenticateToken } from "../middleware/authMiddleware.js"
 
@@ -8,18 +8,26 @@ const router = express.Router()
 
 router.get("/", conditionalAuthenticateToken, async (req: Request, res: Response) => {
   try {
-    let filters: Filters = {}
-    try {
-      if (req.query.filters) {
-        filters = JSON.parse(req.query.filters as string)
-      }
-    } catch {
-      return res.status(400).json({ error: "Bad request" })
-    }
     const userId = req.user?.id
+    
+    const { 
+      q, 
+      titlesOnly, 
+      category, 
+      status, 
+      author,
+      authorId,
+      favourites,
+      minVotes, 
+      maxVotes, 
+      dateFrom, 
+      dateTo,
+      sortBy,     // 'date', 'votes', 'title'
+      sortOrder
+    } = req.query as any
 
     const conditions: string[] = []
-    const values: (string | number)[] = []
+    const values: any[] = []
 
     let selectIsFavourited = "false as is_favourited"
     let favoritesJoin = ""
@@ -30,18 +38,74 @@ router.get("/", conditionalAuthenticateToken, async (req: Request, res: Response
       selectIsFavourited = `(fp.user_id IS NOT NULL) as is_favourited`
     }
 
-    if (filters.authorId) {
-      values.push(filters.authorId)
-      conditions.push(`p.author_id = $${values.length}`)
+    if (q) {
+      const idx = values.push(`%${q}%`)
+      if (titlesOnly === 'true') {
+        conditions.push(`p.title ILIKE $${idx}`)
+      } else {
+        conditions.push(`(p.title ILIKE $${idx} OR p.description ILIKE $${idx})`)
+      }
     }
 
-    if (filters.favourites && userId) {
+    if (authorId) {
+      const idx = values.push(authorId)
+      conditions.push(`p.author_id = $${idx}`)
+    }
+
+    if (author) {
+      const idx = values.push(`%${author}%`)
+      conditions.push(`u.username ILIKE $${idx}`)
+    }
+
+    if (category) {
+      const idx = values.push(category)
+      if (!isNaN(Number(category))) {
+         conditions.push(`p.category_id = $${idx}`) 
+      } else {
+         conditions.push(`c.label = $${idx}`)
+      }
+    }
+
+    if (status) {
+      const idx = values.push(status)
+      conditions.push(`p.status = $${idx}`)
+    }
+
+    if (favourites === 'true' && userId) {
       conditions.push(`fp.user_id IS NOT NULL`)
+    }
+
+    if (minVotes) {
+      const idx = values.push(Number(minVotes))
+      conditions.push(`p.vote_count >= $${idx}`)
+    }
+    if (maxVotes) {
+      const idx = values.push(Number(maxVotes))
+      conditions.push(`p.vote_count <= $${idx}`)
+    }
+
+    if (dateFrom) {
+      const idx = values.push(dateFrom)
+      conditions.push(`p.created_at >= $${idx}`)
+    }
+    if (dateTo) {
+      const idx = values.push(dateTo)
+      conditions.push(`p.created_at <= ($${idx}::date + 1)`)
     }
 
     const whereClause = conditions.length > 0
       ? "WHERE " + conditions.join(" AND ")
       : ""
+
+    let orderByClause = "ORDER BY p.created_at DESC"
+    if (sortBy) {
+      const dir = sortOrder === 'asc' ? 'ASC' : 'DESC'
+      switch (sortBy) {
+        case 'votes': orderByClause = `ORDER BY p.vote_count ${dir}`; break;
+        case 'title': orderByClause = `ORDER BY p.title ${dir}`; break;
+        case 'date': orderByClause = `ORDER BY p.created_at ${dir}`; break;
+      }
+    }
 
     const query = `
       SELECT p.id, p.title, p.description, c.label as category, 
@@ -53,7 +117,7 @@ router.get("/", conditionalAuthenticateToken, async (req: Request, res: Response
       LEFT JOIN users u ON p.author_id = u.id
       ${favoritesJoin}
       ${whereClause}
-      ORDER BY p.created_at DESC
+      ${orderByClause}
     `
 
     const result = await pool.query(query, values)
