@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { globalSearch } from "@/lib/api"
 import SearchFilters from "@/app/components/SearchFilters"
-import type { GlobalSearchFilters } from "../../shared/models" 
+import type { GlobalSearchFilters } from "../../../shared/models" 
 import { theme } from "@/lib/theme"
 
 export const dynamic = 'force-dynamic'
