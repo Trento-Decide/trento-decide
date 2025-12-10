@@ -155,67 +155,91 @@ INSERT INTO poll_choice (id, poll_id, choice_name) VALUES
 (29, 10, 'No'),
 (30, 10, 'Non so');
 
-INSERT INTO proposal (id, title, description, category_id, creation_date, proposal_status_id) VALUES
+INSERT INTO proposal (id, title, description, category_id, creation_date, proposal_status_id, user_id) VALUES
 (1, 'Nuovo parco in via Brescia',
  'Creazione di un parco di quartiere con area giochi e zona verde.',
- 2, NOW() - INTERVAL '10 days', 3),   
+ 2, NOW() - INTERVAL '10 days', 3, 5),   
+
 (2, 'Rotatoria in incrocio pericoloso',
  'Realizzazione di una rotatoria in un incrocio a forte incidentalità.',
- 3, NOW() - INTERVAL '20 days', 4),  
+ 3, NOW() - INTERVAL '20 days', 4, 6),  
+
 (3, 'Pedonalizzazione del centro storico',
  'Trasformare alcune vie centrali in aree pedonali permanenti.',
- 7, NOW() - INTERVAL '15 days', 2),   
+ 7, NOW() - INTERVAL '15 days', 2, 7),   
+
 (4, 'WiFi gratuito in biblioteca comunale',
  'Installazione di WiFi gratuito all’interno della biblioteca principale.',
- 6, NOW() - INTERVAL '5 days', 1),   
+ 6, NOW() - INTERVAL '5 days', 1, 8),   
+
 (5, 'Pista ciclabile lungo il fiume',
  'Creazione di una pista ciclabile sicura lungo l’argine del fiume.',
- 7, NOW() - INTERVAL '30 days', 6),   
+ 7, NOW() - INTERVAL '30 days', 6, 9),   
+
 (6, 'Nuova scuola materna in zona sud',
  'Costruzione di una scuola materna per il quartiere sud.',
- 5, NOW() - INTERVAL '25 days', 3),   
+ 5, NOW() - INTERVAL '25 days', 3, 10),   
+
 (7, 'Festival di teatro di strada',
  'Organizzazione di un festival annuale di teatro di strada in centro.',
- 4, NOW() - INTERVAL '18 days', 2),   
+ 4, NOW() - INTERVAL '18 days', 2, 11),   
+
 (8, 'Sportello psicologico comunale',
  'Attivazione di uno sportello di supporto psicologico gratuito.',
- 8, NOW() - INTERVAL '16 days', 3),  
+ 8, NOW() - INTERVAL '16 days', 3, 12),  
+
 (9, 'Centro polifunzionale sportivo',
  'Realizzazione di un centro sportivo polifunzionale con più campi.',
- 9, NOW() - INTERVAL '22 days', 2), 
+ 9, NOW() - INTERVAL '22 days', 2, 13), 
+
 (10, 'Riqualificazione della piazza centrale',
  'Nuovo arredo urbano, pavimentazione e verde in piazza principale.',
- 1, NOW() - INTERVAL '28 days', 4),  
+ 1, NOW() - INTERVAL '28 days', 4, 14),  
+
 (11, 'Alberi in tutte le vie principali',
  'Piantumazione di alberi lungo le tratte principali della città.',
- 2, NOW() - INTERVAL '35 days', 6),  
+ 2, NOW() - INTERVAL '35 days', 6, 15),  
+
 (12, 'Rampe di accesso per disabili nelle scuole',
  'Installazione di rampe e ascensori per garantire accessibilità.',
- 5, NOW() - INTERVAL '40 days', 5),  
+ 5, NOW() - INTERVAL '40 days', 5, 16),  
+
 (13, 'Videosorveglianza nei parchi pubblici',
  'Installazione di telecamere per ridurre vandalismi e reati.',
- 3, NOW() - INTERVAL '18 days', 3),  
+ 3, NOW() - INTERVAL '18 days', 3, 17),  
+
 (14, 'Laboratori STEM nelle scuole',
  'Creazione di laboratori di scienze e tecnologia nelle scuole.',
- 5, NOW() - INTERVAL '14 days', 2),   
+ 5, NOW() - INTERVAL '14 days', 2, 18),   
+
 (15, 'App segnalazioni buche stradali',
  'Applicazione mobile per segnalare buche e problemi stradali.',
- 6, NOW() - INTERVAL '12 days', 4),   
+ 6, NOW() - INTERVAL '12 days', 4, 5),   
+
 (16, 'Potenziamento linee bus serali',
  'Aumento delle corse autobus in fascia serale.',
- 7, NOW() - INTERVAL '26 days', 6),  
+ 7, NOW() - INTERVAL '26 days', 6, 6),  
+
 (17, 'Supporto agli anziani soli',
  'Programmi di visita e supporto per anziani in solitudine.',
- 8, NOW() - INTERVAL '24 days', 4),  
+ 8, NOW() - INTERVAL '24 days', 4, 7),  
+
 (18, 'Campi da basket di quartiere',
  'Realizzazione di campi da basket all’aperto nei quartieri.',
- 9, NOW() - INTERVAL '8 days', 2),    
+ 9, NOW() - INTERVAL '8 days', 2, 8),    
+
 (19, 'Housing universitario diffuso',
  'Creazione di una rete di alloggi convenzionati per studenti.',
- 1, NOW() - INTERVAL '32 days', 3),   
+ 1, NOW() - INTERVAL '32 days', 3, 9),   
+
 (20, 'Festa della musica cittadina',
  'Evento musicale diffuso in vari punti della città.',
- 4, NOW() - INTERVAL '50 days', 7);   
+ 4, NOW() - INTERVAL '50 days', 7, 10);
+
+ INSERT INTO favorite (user_id, proposal_id) VALUES
+ (5, 11),
+ (5, 12),
+ (4, 3);
 
 INSERT INTO proposal_status (proposal_id, status_id, motivation) VALUES
 (1, 1, NULL),

@@ -2,9 +2,8 @@ export interface User {
   id: number
   username: string
   email: string
-  first: string
-  last: string
-  sex: "Maschio" | "Femmina"
+  notifications: boolean
+  role: "amministratore" | "moderatore" | "cittadino"
 }
 
 export interface PropostaInfo {

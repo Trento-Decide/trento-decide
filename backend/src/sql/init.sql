@@ -37,7 +37,8 @@ CREATE TABLE proposal (
   description VARCHAR NOT NULL,
   category_id INTEGER NOT NULL REFERENCES category(id) ON DELETE CASCADE,
   creation_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  proposal_status_id INTEGER NOT NULL REFERENCES status(id)
+  proposal_status_id INTEGER NOT NULL REFERENCES status(id),
+  user_id INTEGER NOT NULL REFERENCES "user"(id)
 );
 
 CREATE TABLE proposal_status (
@@ -84,5 +85,11 @@ CREATE TABLE user_view (
   user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   proposal_id INTEGER NOT NULL REFERENCES proposal(id) ON DELETE CASCADE,
   last_seen TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (user_id, proposal_id)
+);
+
+CREATE TABLE favorite (
+  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  proposal_id INTEGER NOT NULL REFERENCES proposal(id) ON DELETE CASCADE,
   PRIMARY KEY (user_id, proposal_id)
 );
