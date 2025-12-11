@@ -5,7 +5,6 @@ import bcrypt from "bcrypt"
 import type { User } from "../../../shared/models.js"
 import getEnvVar from "../../../shared/env.js"
 import { pool } from "../database.js"
-import { error } from "console"
 
 const router = express.Router()
 
@@ -98,14 +97,22 @@ router.post("/register", async (req: Request, res: Response) => {
     const passwordHash = await bcrypt.hash(password, 10)
 
     // TODO duddo: si potrebbe globalizzare citizenRole, così è bruttino
-    const citizenRole = await pool.query( `SELECT id FROM role WHERE email = 'cittadino'` )
+    const citizenRoleResult = await pool.query( `SELECT id FROM role WHERE name = 'cittadino'` )
+    if (citizenRoleResult.rowCount === 0) {
+      return res.status(500).json({ error: "Default role not found" })
+    }
+    const citizenRoleId = citizenRoleResult.rows[0].id
 
     const insertionResult = await pool.query(
       ` INSERT INTO "user" (username, email, password_hash, notifications, role_id)
         VALUES ($1, $2, $3, $4, $5)
       `,
-      [username, email, passwordHash, notifications, citizenRole]
+      [username, email, passwordHash, notifications, citizenRoleId]
     )
+
+    if (insertionResult.rowCount !== 1) {
+      return res.status(500).json({ error: "User registration failed" })
+    }
 
     return res.status(200).json({ message: "User registered"} )
   } catch (err) {

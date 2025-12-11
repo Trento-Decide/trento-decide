@@ -18,6 +18,10 @@ router.get("/", conditionalAuthenticateToken, async (req: Request, res: Response
     }
     const userId = req.user?.id
 
+    if (filters.favourites && !userId) {
+      return res.status(401).json({ error: "Authentication is required to filter by favourites" })
+    }
+
     const conditions: string[] = []
     const values: (string | number)[] = []
 
@@ -64,7 +68,7 @@ router.get("/", conditionalAuthenticateToken, async (req: Request, res: Response
       FROM proposal p
       LEFT JOIN category c ON p.category_id = c.id
       LEFT JOIN "user" u ON p.user_id = u.id
-      LEFT JOIN status s ON p.proposal_status_id = s.id
+      LEFT JOIN status s ON p.status_id = s.id
       ${favoritesJoin}
       ${whereClause}
       ORDER BY p.creation_date DESC
@@ -119,7 +123,7 @@ router.get(
             (f.user_id IS NOT NULL) AS is_favourited
           FROM proposal p
           LEFT JOIN category c ON p.category_id = c.id
-          LEFT JOIN status s ON p.proposal_status_id = s.id
+          LEFT JOIN status s ON p.status_id = s.id
           LEFT JOIN "user" u ON p.user_id = u.id
           LEFT JOIN favorite f ON p.id = f.proposal_id AND f.user_id = $2
           WHERE p.id = $1
