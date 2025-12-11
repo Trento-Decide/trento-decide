@@ -9,7 +9,7 @@ import { getUserData } from "@/lib/local"
 import type { User, Proposta } from "../../../shared/models"
 
 export default function Profilo() {
-  const [userData, setUserData] = useState<User>({ id: 0, username: "", email: "", first: "", last: "", sex: "Maschio" })
+  const [userData, setUserData] = useState<User | null>()
   const [myProposals, setMyProposals] = useState<Proposta[]>([])
   const [favoriteProposals, setFavoriteProposals] = useState<Proposta[]>([])
 
@@ -51,6 +51,8 @@ export default function Profilo() {
   }, [])
 
   if (error) return <div className="container my-4">{error}</div>
+
+  if (!userData) return <div className="container my-4"> Failed to fetch user data </div>
 
   return (
     <div className="container my-4">
@@ -116,71 +118,7 @@ export default function Profilo() {
           role="tabpanel"
           aria-labelledby="dati-tab"
         >
-          <form>
-            <div className="row">
-              <div className="col-12 col-md-6">
-                <div className="form-group mb-4">
-                  <label htmlFor="nome" className="active">
-                    Nome *
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="nome"
-                    value={userData.first}
-                    readOnly
-                    style={{ backgroundColor: "#e9ecef" }}
-                  />
-                </div>
-              </div>
-              <div className="col-12 col-md-6">
-                <div className="form-group mb-4">
-                  <label htmlFor="cognome" className="active">
-                    Cognome *
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="cognome"
-                    value={userData.last}
-                    readOnly
-                    style={{ backgroundColor: "#e9ecef" }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="row">
-              <div className="col-12 col-md-6">
-                <div className="form-group mb-4">
-                  <label htmlFor="email" className="active">
-                    Indirizzo email *
-                  </label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    id="email"
-                    value={userData.email}
-                    readOnly
-                    style={{ backgroundColor: "#e9ecef" }}
-                  />
-                </div>
-              </div>
-              <div className="col-12 col-md-6">
-                <div className="form-group mb-4">
-                  <label className="active d-block">Password *</label>
-                  <a
-                    href="#"
-                    className="text-decoration-none fw-bold"
-                    style={{ color: "#006643" }}
-                  >
-                    Aggiorna password
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="row">
+            <div className="column">
               <div className="col-12 col-md-6">
                 <div className="form-group mb-4">
                   <label htmlFor="username" className="active">
@@ -196,28 +134,36 @@ export default function Profilo() {
                   />
                 </div>
               </div>
+
               <div className="col-12 col-md-6">
-                <div className="select-wrapper mb-4">
-                  <label htmlFor="sesso" className="active">
-                    Sesso *
+                <div className="form-group mb-4">
+                  <label htmlFor="email" className="active">
+                    Indirizzo email *
                   </label>
-                  <select className="form-control" id="sesso" value={userData.sex} onChange={() => {}}>
-                    <option value="Maschio">Maschio</option>
-                    <option value="Femmina">Femmina</option>
-                  </select>
+                  <input
+                    type="email"
+                    className="form-control"
+                    id="email"
+                    value={userData.email}
+                    readOnly
+                    style={{ backgroundColor: "#e9ecef" }}
+                  />
+                </div>
+              </div>
+
+              <div className="col-12 col-md-6">
+                <div className="form-group mb-4">
+                  <label className="active d-block">Password *</label>
+                  <a
+                    href="#"
+                    className="text-decoration-none fw-bold"
+                    style={{ color: "#006643" }}
+                  >
+                    Aggiorna password
+                  </a>
                 </div>
               </div>
             </div>
-
-            <div className="d-flex justify-content-end gap-3 mt-4">
-              <button type="button" className="btn btn-outline-secondary">
-                Ignora modifiche
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Salva
-              </button>
-            </div>
-          </form>
         </div>
         <div
           className="tab-pane fade"

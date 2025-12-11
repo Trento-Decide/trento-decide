@@ -12,7 +12,7 @@ export default function Header() {
     const update = () => {
       const user = getUserData()
       if (user) {
-        setUserName(user.first)
+        setUserName(user.username)
       } else {
         setUserName(null)
       }

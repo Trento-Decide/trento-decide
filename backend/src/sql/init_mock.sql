@@ -1,51 +1,52 @@
-INSERT INTO users (username, email, password_hash, first_name, last_name, sex)
-VALUES
-    ('alice','alice@example.com','$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa','Alice','Rossi','Femmina'),
-    ('bob','bob@example.com','$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa','Bob','Bianchi','Maschio');
+INSERT INTO role (id, name) VALUES
+(1, 'amministratore'),
+(2, 'moderatore'),
+(3, 'cittadino');
 
-INSERT INTO proposals (title, description, category_id, status, author_id)
-VALUES
-    ('Alice''s Proposal', 'A proposal by Alice', 3, 'open', (SELECT id FROM users WHERE username = 'alice')),
-    ('Bob''s Proposal', 'A proposal by Bob', 3, 'open', (SELECT id FROM users WHERE username = 'bob'));
+INSERT INTO status (id, name) VALUES
+(1, 'bozza'),
+(2, 'pubblicata'),
+(3, 'in valutazione'),
+(4, 'accettata'),
+(5, 'rifiutata'),
+(6, 'in attuazione'),
+(7, 'completata');
 
-WITH user_ids AS (
-    SELECT id FROM users WHERE username = 'bob'
-), proposal_ids AS (
-    SELECT id FROM proposals WHERE author_id = (SELECT id FROM users WHERE username = 'alice') LIMIT 1
-)
-INSERT INTO proposal_votes (user_id, proposal_id, vote)
-SELECT u.id, p.id, 1 FROM user_ids u, proposal_ids p;
+INSERT INTO category (id, name) VALUES
+(1, 'Urbanistica'),
+(2, 'Ambiente'),
+(3, 'Sicurezza'),
+(4, 'Cultura'),
+(5, 'Istruzione'),
+(6, 'Innovazione'),
+(7, 'Mobilità e Trasporti'),
+(8, 'Welfare'),
+(9, 'Sport');
 
-WITH user_ids AS (
-    SELECT id FROM users WHERE username = 'alice'
-), proposal_ids AS (
-    SELECT id FROM proposals WHERE author_id = (SELECT id FROM users WHERE username = 'bob') LIMIT 1
-)
-INSERT INTO proposal_votes (user_id, proposal_id, vote)
-SELECT u.id, p.id, 1 FROM user_ids u, proposal_ids p;
+INSERT INTO "user" (id, username, email, password_hash, notifications, role_id) VALUES
+(1, 'admin', 'admin@example.com',
+ '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa',
+ TRUE, 1),
 
-WITH user_ids AS (
-    SELECT id FROM users WHERE username = 'bob'
-), proposal_ids AS (
-    SELECT id FROM proposals WHERE author_id = (SELECT id FROM users WHERE username = 'alice') LIMIT 1
-)
-INSERT INTO favorite_proposals (user_id, proposal_id)
-SELECT u.id, p.id FROM user_ids u, proposal_ids p;
+(2, 'mod_marta', 'marta.moderatore@example.com',
+ '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa',
+ TRUE, 2),
 
-WITH user_ids AS (
-    SELECT id FROM users WHERE username = 'alice'
-), proposal_ids AS (
-    SELECT id FROM proposals WHERE author_id = (SELECT id FROM users WHERE username = 'bob') LIMIT 1
-)
-INSERT INTO favorite_proposals (user_id, proposal_id)
-SELECT u.id, p.id FROM user_ids u, proposal_ids p;
+(3, 'alice', 'alice@example.com',
+ '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa',
+ TRUE, 3),
+(4, 'bob', 'bob@example.com',
+ '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa',
+ TRUE, 3);
 
-INSERT INTO proposal_changes (proposal_id, title, description, category_id, change_description, editor_id)
-VALUES
-    ((SELECT id FROM proposals WHERE author_id = (SELECT id FROM users WHERE username = 'alice') LIMIT 1), 'Alice''s Proposal', 'A proposal by Alice', 3, 'Initial creation', (SELECT id FROM users WHERE username = 'alice')),
-    ((SELECT id FROM proposals WHERE author_id = (SELECT id FROM users WHERE username = 'bob') LIMIT 1), 'Bob''s Proposal', 'A proposal by Bob', 3, 'Initial creation', (SELECT id FROM users WHERE username = 'bob'));
+INSERT INTO proposal (id, title, description, category_id, creation_date, status_id, user_id) VALUES
+(1, 'Nuovo parco per cani',
+ 'Creazione di un parco recintato per cani con giochi e fontanelle.',
+ 2, NOW() - INTERVAL '5 days', 2, 3),
+(2, 'Corso di pittura gratuito',
+ 'Organizzazione di un corso di pittura per principianti.',
+ 4, NOW() - INTERVAL '10 days', 2, 4);
 
-INSERT INTO proposal_version (proposal_id, title, description, category_id, votes_at_edit, editor_id)
-VALUES
-    ((SELECT id FROM proposals WHERE author_id = (SELECT id FROM users WHERE username = 'alice') LIMIT 1), 'Alice''s Proposal', 'A proposal by Alice', 3, 0, (SELECT id FROM users WHERE username = 'alice')),
-    ((SELECT id FROM proposals WHERE author_id = (SELECT id FROM users WHERE username = 'bob') LIMIT 1), 'Bob''s Proposal', 'A proposal by Bob', 3, 0, (SELECT id FROM users WHERE username = 'bob'));
+INSERT INTO favorite (user_id, proposal_id) VALUES
+ (3, 2),
+ (4, 1);

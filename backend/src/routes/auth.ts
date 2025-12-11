@@ -5,7 +5,6 @@ import bcrypt from "bcrypt"
 import type { User } from "../../../shared/models.js"
 import getEnvVar from "../../../shared/env.js"
 import { pool } from "../database.js"
-import { error } from "console"
 
 const router = express.Router()
 
@@ -21,7 +20,12 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      `SELECT id, username, email, password_hash, first_name, last_name, sex FROM users WHERE email = $1`,
+      ` 
+        SELECT u.id, u.username, u.email, u.password_hash, u.notifications, r.name AS role
+        FROM "user" u
+        INNER JOIN role r ON r.id = u.role_id
+        WHERE u.email = $1
+      `,
       [email],
     )
 
@@ -41,9 +45,8 @@ router.post("/login", async (req: Request, res: Response) => {
       id: user.id,
       username: user.username,
       email: user.email,
-      first: user.first_name,
-      last: user.last_name,
-      sex: user.sex
+      notifications: user.notifications,
+      role: user.role
     }
 
     const secret = getEnvVar("JWT_SECRET")
@@ -62,10 +65,11 @@ router.post("/login", async (req: Request, res: Response) => {
 
 router.post("/register", async (req: Request, res: Response) => {
   try {
-    const { username, email, password } = req.body as {
+    const { username, email, password, notifications } = req.body as {
       username?: string
       email?: string
       password?: string
+      notifications?: boolean
     }
 
     if (!username || !email || !password) {
@@ -73,7 +77,7 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     const usernameCheck = await pool.query(
-      'SELECT id FROM users WHERE username = $1',
+      'SELECT id FROM "user" WHERE username = $1',
       [username],
     )
 
@@ -82,7 +86,7 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     const emailCheck = await pool.query(
-      'SELECT id FROM users WHERE email = $1',
+      'SELECT id FROM "user" WHERE email = $1',
       [email],
     )
 
@@ -92,14 +96,23 @@ router.post("/register", async (req: Request, res: Response) => {
 
     const passwordHash = await bcrypt.hash(password, 10)
 
+    // TODO duddo: si potrebbe globalizzare citizenRole, così è bruttino
+    const citizenRoleResult = await pool.query( `SELECT id FROM role WHERE name = 'cittadino'` )
+    if (citizenRoleResult.rowCount === 0) {
+      return res.status(500).json({ error: "Default role not found" })
+    }
+    const citizenRoleId = citizenRoleResult.rows[0].id
+
     const insertionResult = await pool.query(
-      ` INSERT INTO users (username, email, password_hash, first_name, last_name, sex)
-        VALUES ($1, $2, $3, 'Wake Up', 'Non ci vanno sti dati', 'Femmina')
+      ` INSERT INTO "user" (username, email, password_hash, notifications, role_id)
+        VALUES ($1, $2, $3, $4, $5)
       `,
-      [username, email, passwordHash]
+      [username, email, passwordHash, notifications, citizenRoleId]
     )
 
-    // se si vuole ritornare user anche qui: RETURNING id, username, email, first_name, last_name, sex
+    if (insertionResult.rowCount !== 1) {
+      return res.status(500).json({ error: "User registration failed" })
+    }
 
     return res.status(200).json({ message: "User registered"} )
   } catch (err) {
