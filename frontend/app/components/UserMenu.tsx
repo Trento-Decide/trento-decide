@@ -54,7 +54,6 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
   return (
     <div className="d-flex align-items-center position-relative" ref={menuRef}>
       <style jsx>{`
-        /* --- ANIMAZIONE ICONA FRECCIA --- */
         .icon-transition {
           transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -62,8 +61,6 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
           transform: rotate(180deg);
         }
 
-        /* --- ANIMAZIONE POP-UP MENU --- */
-        /* Definisco l'animazione keyframe */
         @keyframes popupEnter {
           0% {
             opacity: 0;
@@ -75,13 +72,11 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
           }
         }
 
-        /* Classe da applicare al menu */
         .menu-animate {
           animation: popupEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          transform-origin: top right; /* L'animazione parte dall'alto a destra (sotto l'icona) */
+          transform-origin: top right;
         }
 
-        /* --- STILI STANDARD --- */
         :global(.menu-item-green) {
           color: ${theme.text.dark} !important;
           background-color: transparent !important;
@@ -122,9 +117,9 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
 
         .skeleton-loader {
            background-color: rgba(255,255,255,0.2);
-           height: 32px;
-           width: ${mobileMode ? '32px' : '100px'};
-           border-radius: ${mobileMode ? '50%' : '4px'};
+           height: 24px;
+           width: 100px;
+           border-radius: 4px;
            animation: pulse 1.5s infinite;
         }
         @keyframes pulse {
@@ -141,7 +136,7 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
         :global(.force-align-menu::before),
         :global(.force-align-menu::after) {
           left: auto !important;
-          right: 16px !important; 
+          right: 13px !important;
         }
 
         @media (max-width: 991.98px) {
@@ -158,47 +153,34 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
       ) : userName ? (
         <div className="dropdown-wrapper">
           <button
-            className="btn btn-link text-white text-decoration-none dropdown-toggle d-flex align-items-center gap-2 p-0 border-0 user-btn-hover"
+            className="btn btn-link text-white text-decoration-none dropdown-toggle d-flex align-items-center gap-1 p-0 border-0 user-btn-hover"
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             aria-expanded={isOpen}
             aria-haspopup="true"
             aria-label="Menu utente"
           >
-            <span
-              className="rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-none"
-              style={{ width: 32, height: 32, fontSize: "0.9rem", backgroundColor: "#ff359b", color: theme.text.light }}
+            <span className="d-block fw-bold user-name-text" style={{ fontSize: '0.95rem' }}>
+              CIAO, {userName}
+            </span>
+
+            <svg 
+              className={`icon icon-sm ms-1 icon-transition ${isOpen ? 'rotate-180' : ''}`} 
+              style={{ width: 16, height: 16, fill: "currentColor", stroke: "currentColor", strokeWidth: 1 }} 
               aria-hidden="true"
             >
-              {userName.charAt(0).toUpperCase()}
-            </span>
-            {!mobileMode && (
-              <>
-                <span className="d-none d-lg-block text-capitalize fw-normal user-name-text">
-                  {userName}
-                </span>
-                {/* ICONA CON TRANSIZIONE AGGIUNTA */}
-                <svg 
-                  className={`icon icon-sm ms-1 icon-transition ${isOpen ? 'rotate-180' : ''}`} 
-                  style={{ width: 16, height: 16, fill: "currentColor", stroke: "currentColor", strokeWidth: 1 }} 
-                  aria-hidden="true"
-                >
-                  <use href="/svg/sprites.svg#it-expand"></use>
-                </svg>
-              </>
-            )}
+              <use href="/svg/sprites.svg#it-expand"></use>
+            </svg>
           </button>
           
           {isOpen && (
             <ul 
-              /* AGGIUNTA CLASSE: menu-animate */
               className="dropdown-menu show shadow border-0 mt-2 p-1 force-align-menu menu-animate" 
               style={{ 
                 minWidth: "180px", 
                 zIndex: 9999, 
                 fontSize: '0.9rem', 
                 paddingTop: '8px',
-                /* FIX ALLINEAMENTO: Mantenuto il margine negativo */
                 marginRight: '-18px !important' 
               }}
             >

@@ -114,7 +114,6 @@ export default function SearchBox() {
         
         input[type="search"]::-webkit-search-cancel-button { display: none !important; }
         
-        /* Use global to ensure styles apply to the Next.js Link component */
         :global(.advanced-search-link) {
           text-decoration: none !important;
           color: ${theme.primary} !important;
