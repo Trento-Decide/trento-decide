@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ApiError } from "next/dist/server/api-utils"
 
-import { login, register } from "@/lib/api"
+import { register } from "@/lib/api"
 
 export default function Accedi() {
   const [error, setError] = useState<string | null>(null)

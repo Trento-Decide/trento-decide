@@ -23,6 +23,8 @@ export default function Registrati() {
     }
   }
 
+  if (error) return <div className="container my-4">{error}</div>
+
   return (
     <div className="container py-5">
       <div className="row justify-content-left">
