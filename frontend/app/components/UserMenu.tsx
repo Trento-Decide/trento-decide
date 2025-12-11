@@ -54,6 +54,34 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
   return (
     <div className="d-flex align-items-center position-relative" ref={menuRef}>
       <style jsx>{`
+        /* --- ANIMAZIONE ICONA FRECCIA --- */
+        .icon-transition {
+          transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .rotate-180 {
+          transform: rotate(180deg);
+        }
+
+        /* --- ANIMAZIONE POP-UP MENU --- */
+        /* Definisco l'animazione keyframe */
+        @keyframes popupEnter {
+          0% {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+
+        /* Classe da applicare al menu */
+        .menu-animate {
+          animation: popupEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          transform-origin: top right; /* L'animazione parte dall'alto a destra (sotto l'icona) */
+        }
+
+        /* --- STILI STANDARD --- */
         :global(.menu-item-green) {
           color: ${theme.text.dark} !important;
           background-color: transparent !important;
@@ -87,7 +115,6 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
           text-underline-offset: 4px;
         }
 
-        /* Hover sul bottone nome utente */
         .user-btn-hover:hover .user-name-text { 
           text-decoration: underline !important; 
           text-underline-offset: 4px; 
@@ -108,19 +135,17 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
 
         .force-align-menu {
           position: absolute !important; inset: auto !important; top: 100% !important; right: -10px !important; left: auto !important;
-          margin-top: 0.5rem !important; transform: none !important; display: block;
+          margin-top: 0.5rem !important; display: block;
         }
         
-        /* Fix dropdown arrow positioning */
         :global(.force-align-menu::before),
         :global(.force-align-menu::after) {
           left: auto !important;
-          right: 16px !important; /* Adjusted alignment to center over the icon */
+          right: 16px !important; 
         }
 
         @media (max-width: 991.98px) {
-          .force-align-menu { position: static !important; transform: none !important; width: 100% !important; }
-          /* Hide arrow on mobile as it's full width/static */
+          .force-align-menu { position: static !important; width: 100% !important; animation: none !important; transform: none !important; }
           :global(.force-align-menu::before),
           :global(.force-align-menu::after) {
             display: none !important;
@@ -152,9 +177,10 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
                 <span className="d-none d-lg-block text-capitalize fw-normal user-name-text">
                   {userName}
                 </span>
+                {/* ICONA CON TRANSIZIONE AGGIUNTA */}
                 <svg 
-                  className={`icon icon-sm ms-1 ${isOpen ? 'rotate-180' : ''}`} 
-                  style={{ width: 16, height: 16, fill: "currentColor", stroke: "currentColor", strokeWidth: 1, transition: 'transform 0.2s' }} 
+                  className={`icon icon-sm ms-1 icon-transition ${isOpen ? 'rotate-180' : ''}`} 
+                  style={{ width: 16, height: 16, fill: "currentColor", stroke: "currentColor", strokeWidth: 1 }} 
                   aria-hidden="true"
                 >
                   <use href="/svg/sprites.svg#it-expand"></use>
@@ -165,8 +191,16 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
           
           {isOpen && (
             <ul 
-              className="dropdown-menu show shadow border-0 mt-2 p-1 force-align-menu" 
-              style={{ minWidth: "180px", zIndex: 9999, fontSize: '0.9rem', paddingTop: '8px' }}
+              /* AGGIUNTA CLASSE: menu-animate */
+              className="dropdown-menu show shadow border-0 mt-2 p-1 force-align-menu menu-animate" 
+              style={{ 
+                minWidth: "180px", 
+                zIndex: 9999, 
+                fontSize: '0.9rem', 
+                paddingTop: '8px',
+                /* FIX ALLINEAMENTO: Mantenuto il margine negativo */
+                marginRight: '-18px !important' 
+              }}
             >
                <li style={{ marginTop: '12px' }}>
                  <Link className="dropdown-item menu-item-green d-flex align-items-center gap-2 py-1 px-2 rounded" href="/profilo" onClick={() => setIsOpen(false)}>
