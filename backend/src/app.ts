@@ -6,6 +6,7 @@ import cors from "cors"
 import getEnvVar from "../../shared/env.js"
 import proposteRouter from "./routes/proposte.js"
 import authRouter from "./routes/auth.js"
+import searchRouter from './routes/search.js'; 
 
 export function createApp(): Application {
   const app = express()
@@ -27,6 +28,7 @@ export function createApp(): Application {
 
   app.use("/proposte", proposteRouter)
   app.use("/auth", authRouter)
+  app.use("/cerca", searchRouter)
 
   return app
 }
