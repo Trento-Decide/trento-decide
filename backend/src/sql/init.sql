@@ -37,17 +37,8 @@ CREATE TABLE proposal (
   description VARCHAR NOT NULL,
   category_id INTEGER NOT NULL REFERENCES category(id) ON DELETE CASCADE,
   creation_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  proposal_status_id INTEGER NOT NULL REFERENCES status(id),
+  status_id INTEGER NOT NULL REFERENCES status(id),
   user_id INTEGER NOT NULL REFERENCES "user"(id)
-);
-
-CREATE TABLE proposal_status (
-  proposal_id INTEGER NOT NULL,
-  status_id INTEGER NOT NULL,
-  motivation VARCHAR,
-  PRIMARY KEY (proposal_id, status_id),
-  FOREIGN KEY (proposal_id) REFERENCES proposal(id) ON DELETE CASCADE,
-  FOREIGN KEY (status_id) REFERENCES status(id) ON DELETE CASCADE
 );
 
 CREATE TABLE poll_choice (
