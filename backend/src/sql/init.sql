@@ -2,7 +2,6 @@ CREATE TYPE entity_type AS ENUM (
     'proposal', 
     'poll', 
     'user_sanction',
-    'comment'
 );
 
 CREATE TYPE sanction_type AS ENUM (
@@ -22,6 +21,7 @@ CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(50) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
+  email_opt_in BOOLEAN NOT NULL DEFAULT FALSE,
   password_hash VARCHAR(255) NOT NULL,
   role_id INTEGER NOT NULL REFERENCES roles(id),
   is_banned BOOLEAN DEFAULT FALSE,
@@ -51,6 +51,7 @@ CREATE TABLE proposals (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
+  vote_value INTEGER NOT NULL DEFAULT 0,
 
   -- dati dei campi aggiuntivi
   -- es: {"budget": 5000, "location": "Piazza Duomo"}
