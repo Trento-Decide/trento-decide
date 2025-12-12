@@ -1,10 +1,8 @@
 import express, { type Request, type Response } from "express"
-import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 
-import type { User } from "../../../shared/models.js"
-import getEnvVar from "../../../shared/env.js"
 import { pool } from "../database.js"
+import { signJwt } from "../utils/jwt.js"
 
 const router = express.Router()
 
@@ -16,118 +14,170 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Missing email or password" })
+      return res.status(400).json({
+        error: "Missing email or password",
+      })
     }
 
     const result = await pool.query(
-      ` 
-        SELECT u.id, u.username, u.email, u.password_hash, u.notifications, r.name AS role
-        FROM "user" u
-        INNER JOIN role r ON r.id = u.role_id
+      `
+        SELECT u.id, u.username, u.email, u.password_hash, u.is_banned
+        FROM users u
         WHERE u.email = $1
       `,
       [email],
     )
 
     if (result.rowCount === 0) {
-      return res.status(401).json({ error: "Invalid credentials" })
+      return res.status(401).json({
+        error: "Invalid credentials",
+      })
     }
 
-    const user = result.rows[0]
+    const user = result.rows[0] as {
+      id: number
+      username: string
+      email: string
+      password_hash: string
+      is_banned: boolean
+    }
 
     const passwordMatch = await bcrypt.compare(password, user.password_hash)
-
     if (!passwordMatch) {
-      return res.status(401).json({ error: "Invalid credentials" })
+      return res.status(401).json({
+        error: "Invalid credentials",
+      })
     }
 
-    const userInfo: User = {
-      id: user.id,
+    if (user.is_banned) {
+      return res.status(403).json({
+        error: "User is banned",
+      })
+    }
+
+    const accessToken = signJwt({
+      sub: user.id,
       username: user.username,
-      email: user.email,
-      notifications: user.notifications,
-      role: user.role
-    }
+      v: 1
+    }, { expiresIn: "24h" })
 
-    const secret = getEnvVar("JWT_SECRET")
-    const accessToken = jwt.sign(
-      { id: user.id, username: user.username },
-      secret,
-      { expiresIn: "24h" }
-    )
-
-    return res.status(200).json({ accessToken, user: userInfo })
+    return res.status(200).json({
+      accessToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      },
+    })
   } catch (err) {
     console.error("Login error:", err)
-    return res.status(500).json({ error: "Internal server error" })
+    return res.status(500).json({
+      error: "Internal server error",
+    })
   }
 })
 
 router.post("/register", async (req: Request, res: Response) => {
   try {
-    const { username, email, password, notifications } = req.body as {
+    const { username, email, password, emailOptIn } = req.body as {
       username?: string
       email?: string
       password?: string
-      notifications?: boolean
+      emailOptIn?: boolean
     }
 
     if (!username || !email || !password) {
-      return res.status(400).json({ error: "Missing email or password" })
+      return res.status(400).json({
+        error: "Missing username, email or password",
+      })
     }
 
     const usernameCheck = await pool.query(
-      'SELECT id FROM "user" WHERE username = $1',
+      `
+        SELECT id
+        FROM users
+        WHERE username = $1
+      `,
       [username],
     )
-
     if (usernameCheck.rowCount !== 0) {
-      return res.status(401).json({ error: "Username already exists" })
+      return res.status(409).json({
+        error: "Username already taken",
+      })
     }
 
     const emailCheck = await pool.query(
-      'SELECT id FROM "user" WHERE email = $1',
+      `
+        SELECT id
+        FROM users
+        WHERE email = $1
+      `,
       [email],
     )
-
     if (emailCheck.rowCount !== 0) {
-      return res.status(401).json({ error: "Email already registered" })
+      return res.status(409).json({
+        error: "Email already registered",
+      })
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
 
-    // TODO duddo: si potrebbe globalizzare citizenRole, così è bruttino
-    const citizenRoleResult = await pool.query( `SELECT id FROM role WHERE name = 'cittadino'` )
-    if (citizenRoleResult.rowCount === 0) {
-      return res.status(500).json({ error: "Default role not found" })
+    const DEFAULT_ROLE_CODE = "cittadino"; 
+
+    const roleResult = await pool.query(
+      `
+        SELECT id
+        FROM roles
+        WHERE code = $1
+      `,
+      [DEFAULT_ROLE_CODE],
+    )
+    if (roleResult.rowCount === 0) {
+      console.error(`Critical Error: Default role '${DEFAULT_ROLE_CODE}' not found in DB`);
+      return res.status(500).json({
+        error: "Registration unavailable",
+      })
     }
-    const citizenRoleId = citizenRoleResult.rows[0].id
+    const roleId: number = roleResult.rows[0].id
+
+    const emailOptInBool = !!emailOptIn
 
     const insertionResult = await pool.query(
-      ` INSERT INTO "user" (username, email, password_hash, notifications, role_id)
+      `
+        INSERT INTO users (username, email, password_hash, role_id, email_opt_in)
         VALUES ($1, $2, $3, $4, $5)
       `,
-      [username, email, passwordHash, notifications, citizenRoleId]
+      [username, email, passwordHash, roleId, emailOptInBool],
     )
 
     if (insertionResult.rowCount !== 1) {
-      return res.status(500).json({ error: "User registration failed" })
+      return res.status(500).json({
+        error: "User registration failed",
+      })
     }
 
-    return res.status(200).json({ message: "User registered"} )
+    return res.status(201).json({
+      message: "User registered",
+    })
   } catch (err) {
-    console.error("Login error:", err)
-    return res.status(500).json({ error: "Internal server error" })
+    console.error("Register error:", err)
+    return res.status(500).json({
+      error: "Internal server error",
+    })
   }
 })
 
-router.get("/provider", async (req: Request, res: Response) => {
+router.get("/provider", async (_req: Request, res: Response) => {
   const token = "QuestoTokenNonFunziona"
   try {
-    return res.status(200).json({ providerToken: token })
+    return res.status(200).json({
+      providerToken: token,
+    })
   } catch (err) {
     console.error("Provider error:", err)
-    return res.status(500).json({ error: "Internal server error" })
+    return res.status(500).json({
+      error: "Internal server error",
+    })
   }
 })
 
