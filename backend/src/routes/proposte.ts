@@ -515,6 +515,7 @@ router.get("/:id/preferisco", authenticateToken, async (req: Request, res: Respo
     console.error("Get favorite error:", err)
     return res.status(500).json({
       error: "Failed to fetch favorite",  
+    })
   }
 })
 
