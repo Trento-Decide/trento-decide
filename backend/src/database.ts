@@ -24,3 +24,8 @@ export const initDevDb = async () => {
   await runQueryFile("init.sql")
   await runQueryFile("init_mock.sql")
 }
+
+export const initProdDb = async () => {
+  await runQueryFile("init.sql")
+  await runQueryFile("seed_config.sql")
+}
