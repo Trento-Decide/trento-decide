@@ -1,7 +1,7 @@
 CREATE TYPE entity_type AS ENUM (
-    'proposal', 
-    'poll', 
-    'user_sanction',
+    'proposta', 
+    'sondaggio', 
+    'sanzione'
 );
 
 CREATE TYPE sanction_type AS ENUM (
@@ -12,8 +12,8 @@ CREATE TYPE sanction_type AS ENUM (
 
 CREATE TABLE roles (
   id SERIAL PRIMARY KEY,
-  code VARCHAR(50) NOT NULL UNIQUE, -- nome interno (es. 'admin')
-  labels JSONB NOT NULL DEFAULT '{}'::jsonb, -- multi lingua: {"it": "Amministratore", "en": "Admin"}
+  code VARCHAR(50) NOT NULL UNIQUE,
+  labels JSONB NOT NULL DEFAULT '{}'::jsonb,
   colour VARCHAR(7) DEFAULT '#5b6f82'
 );
 
@@ -30,20 +30,17 @@ CREATE TABLE users (
 
 CREATE TABLE categories (
   id SERIAL PRIMARY KEY,
-  code VARCHAR(100) NOT NULL UNIQUE, -- per l'URL (es. 'ambiente')
-  labels JSONB NOT NULL DEFAULT '{}'::jsonb, -- es: {"it": "Ambiente", "en": "Environment"}
-  description JSONB, -- descrizione multi lingua
+  code VARCHAR(100) NOT NULL UNIQUE,
+  labels JSONB NOT NULL DEFAULT '{}'::jsonb,
+  description JSONB,
   colour VARCHAR(7) DEFAULT '#007a52',
-
-   -- campi extra che servono per questa categoria
-  -- es: [{"label": "Budget Richiesto", "type": "number"}, {"label": "Location", "type": "map"}]
-  form_schema JSONB DEFAULT '[]'::jsonb 
+  form_schema JSONB NOT NULL DEFAULT '[]'::jsonb 
 );
 
 CREATE TABLE statuses (
   id SERIAL PRIMARY KEY,
-  code VARCHAR(50) NOT NULL UNIQUE, -- 'approved'
-  labels JSONB NOT NULL DEFAULT '{}'::jsonb, -- {"it": "Approvata"}
+  code VARCHAR(50) NOT NULL UNIQUE,
+  labels JSONB NOT NULL DEFAULT '{}'::jsonb,
   colour VARCHAR(7) DEFAULT '#5b6f82'
 );
 
@@ -52,17 +49,11 @@ CREATE TABLE proposals (
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   vote_value INTEGER NOT NULL DEFAULT 0,
-
-  -- dati dei campi aggiuntivi
-  -- es: {"budget": 5000, "location": "Piazza Duomo"}
-  additional_data JSONB DEFAULT '{}'::jsonb,
-  
+  additional_data JSONB NOT NULL DEFAULT '{}'::jsonb,
   current_version INTEGER NOT NULL DEFAULT 1, 
-  
   category_id INTEGER NOT NULL REFERENCES categories(id),
   status_id INTEGER NOT NULL REFERENCES statuses(id),
   author_id INTEGER NOT NULL REFERENCES users(id),
-  
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ
 );
@@ -71,11 +62,9 @@ CREATE TABLE proposal_history (
   id SERIAL PRIMARY KEY,
   proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
   version INTEGER NOT NULL,
-  
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   additional_data JSONB,
-  
   archived_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -83,9 +72,10 @@ CREATE TABLE attachments (
   id SERIAL PRIMARY KEY,
   proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
   file_url VARCHAR(255) NOT NULL,
-  file_type VARCHAR(50), -- es 'pdf'
+  file_type VARCHAR(50),
   file_name VARCHAR(255),
-  uploaded_at TIMESTAMPTZ DEFAULT NOW()
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  slot_key VARCHAR(100) -- key del campo "file" nel form_schema (es. 'relazione_pdf'), NULL = allegato extra
 );
 
 CREATE TABLE polls (
@@ -103,14 +93,14 @@ CREATE TABLE poll_questions (
   id SERIAL PRIMARY KEY,
   poll_id INTEGER NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
   text TEXT NOT NULL, 
-  order_index INTEGER DEFAULT 0 -- mantiene l'ordine delle domande nel sondaggio
+  order_index INTEGER DEFAULT 0
 );
 
 CREATE TABLE poll_options (
   id SERIAL PRIMARY KEY,
   question_id INTEGER NOT NULL REFERENCES poll_questions(id) ON DELETE CASCADE,
   text VARCHAR(255) NOT NULL, 
-  order_index INTEGER DEFAULT 0 -- mantiene l'ordine delle opzioni nella domanda
+  order_index INTEGER DEFAULT 0
 );
 
 CREATE TABLE poll_answers (
@@ -118,8 +108,8 @@ CREATE TABLE poll_answers (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   question_id INTEGER NOT NULL REFERENCES poll_questions(id) ON DELETE CASCADE,
   selected_option_id INTEGER REFERENCES poll_options(id),
-  text_response TEXT, -- per risposte aperte e risposte ad opzione 'Altro'
-  created_at TIMESTAMPTZ DEFAULT NOW(),
+  text_response TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT uq_one_answer_per_question UNIQUE (user_id, question_id)
 );
 
@@ -127,31 +117,17 @@ CREATE TABLE proposal_votes (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
-  
   proposal_version INTEGER NOT NULL, 
-  
   vote_value INTEGER NOT NULL CHECK (vote_value IN (-1, 1)),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT uq_vote_version UNIQUE (user_id, proposal_id, proposal_version)
 );
-
-/*
-CREATE TABLE comments (
-  id SERIAL PRIMARY KEY,
-  content TEXT NOT NULL,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-*/
 
 CREATE TABLE favourites (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT uq_fav_proposal UNIQUE (user_id, proposal_id)
 );
 
@@ -160,34 +136,25 @@ CREATE TABLE user_views (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
   CONSTRAINT uq_view_proposal UNIQUE (user_id, proposal_id)
+);
+
+CREATE TABLE notification_types (
+  id SERIAL PRIMARY KEY,
+  code VARCHAR(50) NOT NULL UNIQUE,
+  labels JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 
 CREATE TABLE notifications (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-
-    /*
-  esempi di tipi di notifica:
-     'proposal_approved', 
-     'proposal_rejected',
-     'new_comment', 
-     'poll_closing_soon',
-     'system_warning'
-
-  si potrebbe usare un enum anche qua ma qui non sono fisse le notifiche 
-  (cambiano spesso, ad es. aggiungere tipo 'badge_earned' 
-  significa fare ALTER TABLE ...) quindi si dovrebbero gestire dal backend 
-  */
-
-  notification_type VARCHAR(50) NOT NULL, 
+  notification_type VARCHAR(50) NOT NULL REFERENCES notification_types(code), 
   title VARCHAR(255) NOT NULL,
   message TEXT,
   is_read BOOLEAN DEFAULT FALSE,
   related_object_id INTEGER, 
   related_object_type entity_type, 
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE user_sanctions (
@@ -197,5 +164,8 @@ CREATE TABLE user_sanctions (
   sanction_type sanction_type NOT NULL, 
   reason TEXT NOT NULL,
   expires_at TIMESTAMPTZ, 
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_attachments_proposal_slot ON attachments (proposal_id, slot_key);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (user_id, is_read);

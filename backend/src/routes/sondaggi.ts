@@ -1,215 +1,253 @@
 import express, { type Request, type Response } from "express"
 import { pool } from "../database.js"
-import { conditionalAuthenticateToken } from "../middleware/authMiddleware.js"
-import type { Poll, PollQuestion, PollOption } from "../../../shared/models.js"
+import { authenticateToken, conditionalAuthenticateToken } from "../middleware/authMiddleware.js"
+import type {
+  Poll,
+  PollQuestion,
+  PollOption,
+  PollCreateInput,
+  ID,
+} from "../../../shared/models.js"
 
 const router = express.Router()
 
-router.get("/:id", conditionalAuthenticateToken, async (req: Request, res: Response) => {
+router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: string }>, res: Response<{ data: Poll; userHasVoted: boolean } | { error: string }>) => {
   try {
-    const { id } = req.params
-    const userId = req.user?.id
+    const id = Number(req.params.id)
+    const userId = req.user ? Number(req.user.sub) : undefined
+    
+    if (!Number.isInteger(id)) return res.status(400).json({ error: "ID non valido" })
 
-    const pollResult = await pool.query(`
+    const pollResult = await pool.query(
+      `
       SELECT p.id, p.title, p.description, p.is_active, p.expires_at, p.created_at,
-             u.username as author_name,
-             c.labels->>'it' as category_label,
-             c.colour as category_colour
+             p.category_id,
+             u.id AS author_id, u.username AS author_name,
+             c.code AS category_code, c.labels->>'it' AS category_label, c.colour AS category_color
       FROM polls p
       LEFT JOIN users u ON p.created_by = u.id
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.id = $1
-    `, [id])
+    `,
+      [id],
+    )
 
-    if (pollResult.rowCount === 0) {
-      return res.status(404).json({ error: "Sondaggio non trovato" })
+    if (pollResult.rowCount === 0) return res.status(404).json({ error: "Sondaggio non trovato" })
+    const p = pollResult.rows[0]
+
+    interface QuestionRow {
+      id: number;
+      text: string;
+      order_index: number;
     }
-    const pollRow = pollResult.rows[0]
 
-    const questionsResult = await pool.query(`
+    const questionsResult = await pool.query(
+      `
       SELECT id, text, order_index
       FROM poll_questions
       WHERE poll_id = $1
       ORDER BY order_index ASC
-    `, [id])
+    `,
+      [id],
+    )
 
-    // 3. Recupera Opzioni per tutte le domande trovate
-    const questionIds = questionsResult.rows.map(q => q.id)
-    let optionsMap: Record<number, PollOption[]> = {}
+    const questionsData = questionsResult.rows as QuestionRow[]
+    const questionIds: number[] = questionsData.map((q) => q.id)
     
+    const optionsMap: Record<number, PollOption[]> = {}
+    
+    interface OptionRow {
+      id: number;
+      question_id: number;
+      text: string;
+      order_index: number;
+    }
+
     if (questionIds.length > 0) {
-      const optionsResult = await pool.query(`
+      const optionsResult = await pool.query(
+        `
         SELECT id, question_id, text, order_index
         FROM poll_options
         WHERE question_id = ANY($1::int[])
         ORDER BY order_index ASC
-      `, [questionIds])
+      `,
+        [questionIds],
+      )
 
-      optionsResult.rows.forEach(opt => {
-        if (!optionsMap[opt.question_id]) optionsMap[opt.question_id] = []
-        optionsMap[opt.question_id].push({
+      const optionsRows = optionsResult.rows as OptionRow[]
+
+      for (const opt of optionsRows) {
+        if (!optionsMap[opt.question_id]) {
+            optionsMap[opt.question_id] = []
+        }
+        optionsMap[opt.question_id]!.push({
           id: opt.id,
-          question_id: opt.question_id,
+          questionId: opt.question_id,
           text: opt.text,
-          order_index: opt.order_index
+          orderIndex: opt.order_index,
         })
-      })
+      }
     }
 
-    // 4. Se l'utente è loggato, controlla se ha già risposto
+    const fullQuestions: PollQuestion[] = questionsData.map((q) => ({
+      id: q.id,
+      pollId: p.id,
+      text: q.text,
+      orderIndex: q.order_index ?? 0,
+      options: optionsMap[q.id] || [] 
+    }))
+
     let userHasVoted = false
-    if (userId) {
-      const voteCheck = await pool.query(`
-        SELECT 1 FROM poll_answers 
-        WHERE user_id = $1 AND question_id = $2
+    if (userId && questionIds.length > 0) {
+      const voteCheck = await pool.query(
+        `
+        SELECT 1
+        FROM poll_answers pa
+        WHERE pa.user_id = $1 AND pa.question_id = ANY($2::int[])
         LIMIT 1
-      `, [userId, questionIds[0]]) // Basta controllare se ha risposto alla prima domanda
+      `,
+        [userId, questionIds],
+      )
       userHasVoted = (voteCheck.rowCount ?? 0) > 0
     }
 
-    // 5. Assembla l'oggetto finale
     const poll: Poll = {
-      id: pollRow.id,
-      title: pollRow.title,
-      description: pollRow.description,
-      is_active: pollRow.is_active,
-      created_at: new Date(pollRow.created_at).toISOString(),
-      expires_at: pollRow.expires_at ? new Date(pollRow.expires_at).toISOString() : undefined,
-      created_by: 0, // Non serve esporre l'ID raw qui se abbiamo author
-      author: { id: 0, username: pollRow.author_name },
-      category: pollRow.category_label ? { 
-        id: 0, 
-        code: '', 
-        colour: pollRow.category_colour, 
-        labels: { it: pollRow.category_label } 
-      } : undefined,
+      id: p.id,
+      title: p.title,
       
-      questions: questionsResult.rows.map(q => ({
-        id: q.id,
-        poll_id: Number(id),
-        text: q.text,
-        order_index: q.order_index,
-        options: optionsMap[q.id] || []
-      }))
+      ...(p.description ? { description: p.description } : {}),
+      
+      ...(p.category_id ? {
+          category: {
+            id: p.category_id as ID,
+            code: p.category_code ?? "unknown",
+            ...(p.category_label ? { label: p.category_label } : {}),
+            ...(p.category_color ? { colour: p.category_color } : {})
+          }
+      } : {}),
+
+      createdBy: { id: p.author_id as ID, username: p.author_name },
+      isActive: p.is_active,
+      
+      ...(p.expires_at ? { expiresAt: new Date(p.expires_at).toISOString() } : {}),
+      
+      createdAt: new Date(p.created_at).toISOString(),
+      questions: fullQuestions
     }
 
-    res.json({ data: poll, userHasVoted })
+    return res.json({
+      data: poll,
+      userHasVoted,
+    })
 
   } catch (err) {
     console.error(err)
-    res.status(500).json({ error: "Errore nel recupero sondaggio" })
+    return res.status(500).json({ error: "Errore nel recupero sondaggio" })
   }
 })
 
-// POST /sondaggi - Crea nuovo sondaggio (Richiede Auth)
-router.post("/", authenticateToken, async (req: Request, res: Response) => {
+router.post("/", authenticateToken, async (req: Request<unknown, unknown, PollCreateInput>, res: Response<{ success: true; pollId: ID } | { error: string }>) => {
   const client = await pool.connect()
   try {
-    const userId = req.user!.id
-    const { title, description, category_id, expires_at, questions } = req.body
+    const userId = Number(req.user!.sub)
+    const { title, description, categoryId, expiresAt, isActive, questions } = req.body
 
-    if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+    if (!title || !Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({ error: "Dati mancanti o non validi" })
     }
 
     await client.query("BEGIN")
 
-    // 1. Inserisci Sondaggio
-    const pollRes = await client.query(`
-      INSERT INTO polls (title, description, category_id, created_by, expires_at)
-      VALUES ($1, $2, $3, $4, $5)
+    const pollRes = await client.query(
+      `
+      INSERT INTO polls (title, description, category_id, created_by, is_active, expires_at, created_at)
+      VALUES ($1, $2, $3, $4, COALESCE($5, TRUE), $6, NOW())
       RETURNING id
-    `, [title, description, category_id, userId, expires_at])
-    const pollId = pollRes.rows[0].id
+    `,
+      [title, description ?? null, categoryId ?? null, userId, isActive ?? true, expiresAt ?? null],
+    )
+    const pollId: ID = pollRes.rows[0].id
 
-    // 2. Inserisci Domande e Opzioni
     for (const [qIndex, q] of questions.entries()) {
-      const qRes = await client.query(`
+      const qRes = await client.query(
+        `
         INSERT INTO poll_questions (poll_id, text, order_index)
         VALUES ($1, $2, $3)
         RETURNING id
-      `, [pollId, q.text, qIndex])
-      const qId = qRes.rows[0].id
+      `,
+        [pollId, q.text, q.orderIndex ?? qIndex],
+      )
+      const qId: ID = qRes.rows[0].id
 
-      if (q.options && Array.isArray(q.options)) {
-        for (const [optIndex, optText] of q.options.entries()) {
-          await client.query(`
+      if (Array.isArray(q.options)) {
+        for (const [optIndex, opt] of q.options.entries()) {
+          await client.query(
+            `
             INSERT INTO poll_options (question_id, text, order_index)
             VALUES ($1, $2, $3)
-          `, [qId, optText, optIndex])
+          `,
+            [qId, opt.text, opt.orderIndex ?? optIndex],
+          )
         }
       }
     }
 
     await client.query("COMMIT")
-    res.status(201).json({ success: true, pollId })
-
+    return res.status(201).json({ success: true, pollId })
   } catch (err) {
     await client.query("ROLLBACK")
     console.error(err)
-    res.status(500).json({ error: "Errore creazione sondaggio" })
+    return res.status(500).json({ error: "Errore creazione sondaggio" })
   } finally {
     client.release()
   }
 })
 
-// POST /sondaggi/:id/vota - Invia risposte
-router.post("/:id/vota", authenticateToken, async (req: Request, res: Response) => {
-  const client = await pool.connect()
+router.post("/:id/vota", authenticateToken, async (req: Request<{ id: string }, unknown, { questionId: ID; selectedOptionId?: ID; textResponse?: string }>, res: Response<{ success: boolean } | { error: string }>) => {
   try {
-    const userId = req.user!.id
-    const pollId = req.params.id
-    const { answers } = req.body // Array di { question_id, selected_option_id, text_response }
+    const userId = Number(req.user!.sub)
+    const pollId = Number(req.params.id)
+    const { questionId, selectedOptionId, textResponse } = req.body
 
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({ error: "Formato risposte non valido" })
-    }
+    if (!Number.isInteger(pollId)) return res.status(400).json({ error: "ID sondaggio non valido" })
+    if (!Number.isInteger(questionId)) return res.status(400).json({ error: "ID domanda mancante" })
+    if (!selectedOptionId && !textResponse) return res.status(400).json({ error: "Nessuna risposta fornita" })
 
-    // Verifica se il sondaggio è attivo
-    const pollCheck = await client.query(`SELECT is_active, expires_at FROM polls WHERE id = $1`, [pollId])
+    const pollCheck = await pool.query(`SELECT is_active, expires_at FROM polls WHERE id = $1`, [pollId])
     if (pollCheck.rowCount === 0) return res.status(404).json({ error: "Sondaggio non trovato" })
-    
     const poll = pollCheck.rows[0]
+    
     if (!poll.is_active) return res.status(400).json({ error: "Sondaggio chiuso" })
     if (poll.expires_at && new Date() > new Date(poll.expires_at)) {
-        return res.status(400).json({ error: "Sondaggio scaduto" })
+      return res.status(400).json({ error: "Sondaggio scaduto" })
     }
 
-    // Verifica se ha già votato (basta controllare una risposta qualsiasi per questo sondaggio)
-    // Nota: questo controllo è semplificato, idealmente si controlla per ogni domanda se la logica lo richiede
-    const prevVote = await client.query(`
-        SELECT 1 FROM poll_answers pa
-        JOIN poll_questions pq ON pa.question_id = pq.id
-        WHERE pq.poll_id = $1 AND pa.user_id = $2
-        LIMIT 1
-    `, [pollId, userId])
-
-    if (prevVote.rowCount! > 0) {
-         return res.status(400).json({ error: "Hai già votato in questo sondaggio" })
+    const integrityCheck = await pool.query(
+      `SELECT 1 FROM poll_questions WHERE id = $1 AND poll_id = $2`,
+      [questionId, pollId]
+    )
+    if (integrityCheck.rowCount === 0) {
+      return res.status(400).json({ error: "La domanda non appartiene a questo sondaggio" })
     }
 
-    await client.query("BEGIN")
+    await pool.query(
+      `
+      INSERT INTO poll_answers (user_id, question_id, selected_option_id, text_response, created_at)
+      VALUES ($1, $2, $3, $4, NOW())
+      ON CONFLICT (user_id, question_id) 
+      DO UPDATE SET 
+        selected_option_id = EXCLUDED.selected_option_id,
+        text_response = EXCLUDED.text_response,
+        created_at = NOW()
+      `,
+      [userId, questionId, selectedOptionId ?? null, textResponse ?? null]
+    )
 
-    for (const ans of answers) {
-      await client.query(`
-        INSERT INTO poll_answers (user_id, question_id, selected_option_id, text_response)
-        VALUES ($1, $2, $3, $4)
-      `, [userId, ans.question_id, ans.selected_option_id, ans.text_response])
-    }
-
-    await client.query("COMMIT")
-    res.json({ success: true })
+    return res.json({ success: true })
 
   } catch (err) {
-    await client.query("ROLLBACK")
     console.error(err)
-    // Gestione errore constraint unique (se due richieste arrivano insieme)
-    if ((err as any).code === '23505') {
-        return res.status(400).json({ error: "Hai già risposto a questa domanda" })
-    }
-    res.status(500).json({ error: "Errore salvataggio voto" })
-  } finally {
-    client.release()
+    return res.status(500).json({ error: "Errore salvataggio voto" })
   }
 })
 

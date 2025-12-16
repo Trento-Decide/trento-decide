@@ -1,52 +1,74 @@
-INSERT INTO role (id, name) VALUES
-(1, 'amministratore'),
-(2, 'moderatore'),
-(3, 'cittadino');
+INSERT INTO users (username, email, password_hash, role_id, email_opt_in) VALUES
+('admin', 'admin@example.com', 
+ '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa', 
+ (SELECT id FROM roles WHERE code = 'admin'), TRUE),
 
-INSERT INTO status (id, name) VALUES
-(1, 'bozza'),
-(2, 'pubblicata'),
-(3, 'in valutazione'),
-(4, 'accettata'),
-(5, 'rifiutata'),
-(6, 'in attuazione'),
-(7, 'completata');
+('mod_marta', 'marta.moderatore@example.com', 
+ '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa', 
+ (SELECT id FROM roles WHERE code = 'moderatore'), TRUE),
 
-INSERT INTO category (id, name) VALUES
-(1, 'Urbanistica'),
-(2, 'Ambiente'),
-(3, 'Sicurezza'),
-(4, 'Cultura'),
-(5, 'Istruzione'),
-(6, 'Innovazione'),
-(7, 'Mobilità e Trasporti'),
-(8, 'Welfare'),
-(9, 'Sport');
+('alice', 'alice@example.com', 
+ '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa', 
+ (SELECT id FROM roles WHERE code = 'cittadino'), TRUE),
 
-INSERT INTO "user" (id, username, email, password_hash, notifications, role_id) VALUES
-(1, 'admin', 'admin@example.com',
- '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa',
- TRUE, 1),
+('bob', 'bob@example.com', 
+ '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa', 
+ (SELECT id FROM roles WHERE code = 'cittadino'), TRUE);
 
-(2, 'mod_marta', 'marta.moderatore@example.com',
- '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa',
- TRUE, 2),
+ ('enpa', 'enpa@example.com', 
+ '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa', 
+ (SELECT id FROM roles WHERE code = 'associazione'), TRUE);
 
-(3, 'alice', 'alice@example.com',
- '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa',
- TRUE, 3),
-(4, 'bob', 'bob@example.com',
- '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa',
- TRUE, 3);
 
-INSERT INTO proposal (id, title, description, category_id, creation_date, status_id, user_id) VALUES
-(1, 'Nuovo parco per cani',
+INSERT INTO proposals (title, description, vote_value, category_id, status_id, author_id, created_at, additional_data) VALUES
+('Nuovo parco per cani',
  'Creazione di un parco recintato per cani con giochi e fontanelle.',
- 2, NOW() - INTERVAL '5 days', 2, 3),
-(2, 'Corso di pittura gratuito',
- 'Organizzazione di un corso di pittura per principianti.',
- 4, NOW() - INTERVAL '10 days', 2, 4);
+ 1,
+ (SELECT id FROM categories WHERE code = 'ambiente'),
+ (SELECT id FROM statuses WHERE code = 'pubblicata'),
+ (SELECT id FROM users WHERE username = 'alice'),
+ NOW() - INTERVAL '5 days',
+ '{"budget": 5000, "impatto": "Miglioramento benessere animale"}'::jsonb);
 
-INSERT INTO favorite (user_id, proposal_id) VALUES
- (3, 2),
- (4, 1);
+INSERT INTO proposals (title, description, vote_value, category_id, status_id, author_id, created_at, additional_data) VALUES
+('Corso di pittura gratuito',
+ 'Organizzazione di un corso di pittura per principianti nel weekend.',
+ 0,
+ (SELECT id FROM categories WHERE code = 'cultura'),
+ (SELECT id FROM statuses WHERE code = 'pubblicata'),
+ (SELECT id FROM users WHERE username = 'bob'),
+ NOW() - INTERVAL '10 days',
+ '{}'::jsonb);
+
+INSERT INTO proposal_history (proposal_id, version, title, description, additional_data) 
+SELECT id, current_version, title, description, additional_data FROM proposals;
+
+
+INSERT INTO proposal_votes (user_id, proposal_id, proposal_version, vote_value) VALUES
+((SELECT id FROM users WHERE username = 'bob'), 
+ (SELECT id FROM proposals WHERE title = 'Nuovo parco per cani'), 
+ 1, 1);
+
+INSERT INTO favourites (user_id, proposal_id) VALUES
+((SELECT id FROM users WHERE username = 'alice'), 
+ (SELECT id FROM proposals WHERE title = 'Corso di pittura gratuito'));
+
+WITH new_poll AS (
+  INSERT INTO polls (title, description, category_id, created_by, is_active, expires_at) 
+  VALUES (
+    'Quale priorità per il 2024?',
+    'Aiutaci a decidere su cosa investire il budget annuale.',
+    (SELECT id FROM categories WHERE code = 'urbanistica'),
+    (SELECT id FROM users WHERE username = 'mod_marta'),
+    TRUE,
+    NOW() + INTERVAL '30 days'
+  ) RETURNING id
+)
+INSERT INTO poll_questions (poll_id, text, order_index) 
+SELECT id, 'Quale settore necessita di più fondi?', 0 FROM new_poll;
+
+INSERT INTO poll_options (question_id, text, order_index)
+VALUES 
+((SELECT id FROM poll_questions LIMIT 1), 'Manutenzione Strade', 0),
+((SELECT id FROM poll_questions LIMIT 1), 'Verde Pubblico', 1),
+((SELECT id FROM poll_questions LIMIT 1), 'Scuole', 2);
