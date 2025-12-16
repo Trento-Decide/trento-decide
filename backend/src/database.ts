@@ -22,5 +22,11 @@ const runQueryFile = async (file: string) => {
 export const initDevDb = async () => {
   await runQueryFile("wipe_db.sql")
   await runQueryFile("init.sql")
+  await runQueryFile("seed_config.sql")
   await runQueryFile("init_mock.sql")
+}
+
+export const initProdDb = async () => {
+  await runQueryFile("init.sql")
+  await runQueryFile("seed_config.sql")
 }

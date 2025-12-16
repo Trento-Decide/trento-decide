@@ -7,7 +7,7 @@ import { theme } from "@/lib/theme"
 export default function SearchFilters() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const uniqueId = useId() // Generate unique ID for this instance
+  const uniqueId = useId()
 
   const [filters, setFilters] = useState({
     q: "",
