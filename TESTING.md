@@ -1,4 +1,4 @@
-## Esempio utente registrato
+## Credenziali
 
-- [ ] email: alice@example.com
-- [ ] passw: 30L
+- email: alice@example.com
+- passw: 30L
