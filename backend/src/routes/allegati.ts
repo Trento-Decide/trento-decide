@@ -79,10 +79,14 @@ router.post(
         id: insert.rows[0].id,
         proposalId,
         fileUrl,
-        fileType,
-        fileName,
         uploadedAt: new Date(insert.rows[0].uploaded_at).toISOString(),
         slotKey,
+      }
+      if (fileType) {
+        resp.fileType = fileType
+      }
+      if (fileName) {
+        resp.fileName = fileName
       }
       return res.status(201).json(resp)
 
@@ -121,9 +125,13 @@ router.post(
         id: insert.rows[0].id,
         proposalId,
         fileUrl,
-        fileType,
-        fileName,
         uploadedAt: new Date(insert.rows[0].uploaded_at).toISOString(),
+      }
+      if (fileType) {
+        resp.fileType = fileType
+      }
+      if (fileName) {
+        resp.fileName = fileName
       }
       return res.status(201).json(resp)
     } catch (err) {
