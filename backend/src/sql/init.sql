@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-CREATE TABLE role (
-=======
 CREATE TYPE entity_type AS ENUM (
     'proposta', 
     'sondaggio', 
@@ -14,26 +11,14 @@ CREATE TYPE sanction_type AS ENUM (
 );
 
 CREATE TABLE roles (
->>>>>>> e49f1c4 (WIP Allineamento Backend con DB)
   id SERIAL PRIMARY KEY,
-<<<<<<< HEAD
-  name VARCHAR NOT NULL UNIQUE
-=======
   code VARCHAR(50) NOT NULL UNIQUE,
   labels JSONB NOT NULL DEFAULT '{}'::jsonb,
   colour VARCHAR(7) DEFAULT '#5b6f82'
->>>>>>> d32f360 (Validation, allineamento back end, nuovo mock)
 );
 
-CREATE TABLE "user" (
+CREATE TABLE users (
   id SERIAL PRIMARY KEY,
-<<<<<<< HEAD
-  username VARCHAR NOT NULL UNIQUE,
-  email VARCHAR NOT NULL UNIQUE,
-  password_hash VARCHAR NOT NULL,
-  notifications BOOLEAN NOT NULL DEFAULT FALSE,
-  role_id INTEGER NOT NULL REFERENCES role(id)
-=======
   username VARCHAR(50) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
   email_opt_in BOOLEAN NOT NULL DEFAULT FALSE,
@@ -41,42 +26,26 @@ CREATE TABLE "user" (
   role_id INTEGER NOT NULL REFERENCES roles(id),
   is_banned BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
->>>>>>> e49f1c4 (WIP Allineamento Backend con DB)
 );
 
-CREATE TABLE category (
+CREATE TABLE categories (
   id SERIAL PRIMARY KEY,
-<<<<<<< HEAD
-  name VARCHAR NOT NULL UNIQUE
-=======
   code VARCHAR(100) NOT NULL UNIQUE,
   labels JSONB NOT NULL DEFAULT '{}'::jsonb,
   description JSONB,
   colour VARCHAR(7) DEFAULT '#007a52',
   form_schema JSONB NOT NULL DEFAULT '[]'::jsonb 
->>>>>>> d32f360 (Validation, allineamento back end, nuovo mock)
 );
 
-CREATE TABLE status (
+CREATE TABLE statuses (
   id SERIAL PRIMARY KEY,
-<<<<<<< HEAD
-  name VARCHAR NOT NULL UNIQUE
-=======
   code VARCHAR(50) NOT NULL UNIQUE,
   labels JSONB NOT NULL DEFAULT '{}'::jsonb,
   colour VARCHAR(7) DEFAULT '#5b6f82'
->>>>>>> d32f360 (Validation, allineamento back end, nuovo mock)
 );
 
-CREATE TABLE poll (
+CREATE TABLE proposals (
   id SERIAL PRIMARY KEY,
-<<<<<<< HEAD
-  title VARCHAR NOT NULL,
-  description VARCHAR NOT NULL,
-  category_id INTEGER NOT NULL REFERENCES category(id) ON DELETE CASCADE,
-  finish_date TIMESTAMPTZ NOT NULL,
-  creation_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
-=======
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   vote_value INTEGER NOT NULL DEFAULT 0,
@@ -87,90 +56,48 @@ CREATE TABLE poll (
   author_id INTEGER NOT NULL REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ
->>>>>>> e49f1c4 (WIP Allineamento Backend con DB)
 );
 
-CREATE TABLE proposal (
+CREATE TABLE proposal_history (
   id SERIAL PRIMARY KEY,
-<<<<<<< HEAD
-  title VARCHAR NOT NULL,
-  description VARCHAR NOT NULL,
-  category_id INTEGER NOT NULL REFERENCES category(id) ON DELETE CASCADE,
-  creation_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  status_id INTEGER NOT NULL REFERENCES status(id),
-  user_id INTEGER NOT NULL REFERENCES "user"(id)
-=======
   proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
   version INTEGER NOT NULL,
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   additional_data JSONB,
   archived_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
->>>>>>> d32f360 (Validation, allineamento back end, nuovo mock)
 );
 
-CREATE TABLE poll_choice (
+CREATE TABLE attachments (
   id SERIAL PRIMARY KEY,
-<<<<<<< HEAD
-  poll_id INTEGER NOT NULL REFERENCES poll(id) ON DELETE CASCADE,
-  choice_name VARCHAR NOT NULL
-=======
   proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
   file_url VARCHAR(255) NOT NULL,
   file_type VARCHAR(50),
   file_name VARCHAR(255),
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   slot_key VARCHAR(100) -- key del campo "file" nel form_schema (es. 'relazione_pdf'), NULL = allegato extra
->>>>>>> d32f360 (Validation, allineamento back end, nuovo mock)
 );
 
-ALTER TABLE poll_choice
-  ADD CONSTRAINT uq_poll_choice_per_poll UNIQUE (poll_id, choice_name);
-
-CREATE TABLE proposal_vote (
-  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-  proposal_id INTEGER NOT NULL REFERENCES proposal(id) ON DELETE CASCADE,
-  value BOOLEAN NOT NULL,
-  PRIMARY KEY (user_id, proposal_id)
+CREATE TABLE polls (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+  created_by INTEGER NOT NULL REFERENCES users(id),
+  is_active BOOLEAN DEFAULT TRUE,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-<<<<<<< HEAD
-CREATE TABLE poll_vote (
-  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-  poll_id INTEGER NOT NULL REFERENCES poll(id) ON DELETE CASCADE,
-  poll_choice_id INTEGER NOT NULL REFERENCES poll_choice(id),
-  PRIMARY KEY (user_id, poll_id)
-=======
 CREATE TABLE poll_questions (
   id SERIAL PRIMARY KEY,
   poll_id INTEGER NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
   text TEXT NOT NULL, 
   order_index INTEGER DEFAULT 0
->>>>>>> d32f360 (Validation, allineamento back end, nuovo mock)
 );
 
-CREATE TABLE moderation (
+CREATE TABLE poll_options (
   id SERIAL PRIMARY KEY,
-<<<<<<< HEAD
-  motivation VARCHAR NOT NULL,
-  author_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-  action_end TIMESTAMPTZ
-);
-
-CREATE TABLE user_view (
-  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-  proposal_id INTEGER NOT NULL REFERENCES proposal(id) ON DELETE CASCADE,
-  last_seen TIMESTAMPTZ NOT NULL,
-  PRIMARY KEY (user_id, proposal_id)
-);
-
-CREATE TABLE favorite (
-  user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-  proposal_id INTEGER NOT NULL REFERENCES proposal(id) ON DELETE CASCADE,
-  PRIMARY KEY (user_id, proposal_id)
-);
-=======
   question_id INTEGER NOT NULL REFERENCES poll_questions(id) ON DELETE CASCADE,
   text VARCHAR(255) NOT NULL, 
   order_index INTEGER DEFAULT 0
@@ -242,4 +169,3 @@ CREATE TABLE user_sanctions (
 
 CREATE INDEX IF NOT EXISTS idx_attachments_proposal_slot ON attachments (proposal_id, slot_key);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (user_id, is_read);
->>>>>>> d32f360 (Validation, allineamento back end, nuovo mock)
