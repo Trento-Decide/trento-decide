@@ -8,7 +8,7 @@ const router = express.Router()
 router.get(
   "/",
   authenticateToken,
-  async (req: Request<any, any, any, { unreadOnly?: string }>, res: Response<Notification[] | { error: string }>) => {
+  async (req: Request<{}, unknown, {}, { unreadOnly?: string }>, res: Response<Notification[] | { error: string }>) => {
     const userId = Number(req.user!.sub) 
     
     const unreadOnly = req.query.unreadOnly === "true"
@@ -47,7 +47,7 @@ router.get(
 router.patch(
   "/:id/leggi",
   authenticateToken,
-  async (req: Request<{ id: string }, any, { isRead?: boolean }>, res: Response<{ id: number; isRead: boolean } | { error: string }>) => {
+  async (req: Request<{ id: string }, unknown, { isRead?: boolean }>, res: Response<{ id: number; isRead: boolean } | { error: string }>) => {
     const userId = Number(req.user!.sub)
     const notificationId = Number(req.params.id)
     const isRead = req.body.isRead ?? true
