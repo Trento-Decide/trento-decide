@@ -2,10 +2,10 @@
 
 import Link from "next/link"
 
-import type { Proposta } from "../../../shared/models"
+import type { ProposalSearchItem } from "../../../shared/models"
 
 interface PropostaCardProps {
-  proposal: Proposta
+  proposal: ProposalSearchItem
 }
 
 export default function PropostaCard({ proposal }: PropostaCardProps) {
@@ -14,7 +14,7 @@ export default function PropostaCard({ proposal }: PropostaCardProps) {
       <div className="card-body">
         <div className="row">
           <div className="col-md-1 col-3 text-center d-flex flex-column align-items-center justify-content-center border-end">
-            <span className="fw-bold text-primary fs-5">{proposal.votes}</span>
+            <span className="fw-bold text-primary fs-5">{proposal.voteValue}</span>
             <span className="text-muted small">voti</span>
           </div>
           <div className="col-md-11 col-9 ps-md-4">

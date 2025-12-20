@@ -7,13 +7,13 @@ import { ApiError } from "next/dist/server/api-utils"
 
 import Breadcrumb from "@/app/components/Breadcrumb"
 import { getProposal, addFavouriteProposal, removeFavouriteProposal } from "@/lib/api"
-import { Proposta } from "../../../../shared/models"
+import type { Proposal } from "../../../../shared/models"
 import { VoteWidget } from "./VoteWidget"
 
 export default function PropostaDettaglio() {
   const { id } = useParams() as { id?: number }
   const [isFavourited, setIsFavourited] = useState(false)
-  const [proposal, setProposal] = useState<Proposta | null>(null)
+  const [proposal, setProposal] = useState<Proposal | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const categoryIcon: Record<string, string> = {
@@ -79,8 +79,8 @@ export default function PropostaDettaglio() {
         <div className="col-md-1 text-center">
           <VoteWidget
             proposalId={proposal.id}
-            initialVotes={proposal.votes}
-            onVotesChange={(newTotal) => setProposal({ ...proposal, votes: newTotal })}
+            initialVotes={proposal.voteValue}
+            onVotesChange={(newTotal) => setProposal({ ...proposal, voteValue: newTotal })}
           />
         </div>
 
@@ -91,14 +91,14 @@ export default function PropostaDettaglio() {
             <div>
               <span className="badge rounded-pill text-bg-primary px-3 py-2">
                 <svg className="icon icon-white icon-sm me-2" aria-hidden="true">
-                  <use href={`/svg/sprites.svg#${categoryIcon[proposal.category] ?? "it-info-circle"}`}></use>
+                  <use href={`/svg/sprites.svg#${categoryIcon[proposal.category.code] ?? "it-info-circle"}`}></use>
                 </svg>
-                {proposal.category}
+                {proposal.category.label || proposal.category.code}
               </span>
             </div>
             <div className="text-end text-muted small">
-              <div><strong>Autore:</strong> {proposal.author ?? ""}</div>
-              <div><strong>Data di creazione:</strong> {proposal.timestamp ? new Date(proposal.timestamp).toLocaleString("it-IT") : ""}</div>
+              <div><strong>Autore:</strong> {proposal.author.username ?? ""}</div>
+              <div><strong>Data di creazione:</strong> {proposal.createdAt ? new Date(proposal.createdAt).toLocaleString("it-IT") : ""}</div>
             </div>
           </div>
 

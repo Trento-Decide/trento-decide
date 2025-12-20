@@ -6,12 +6,12 @@ import { ApiError } from "next/dist/server/api-utils"
 import PropostaCard from "@/app/components/PropostaCard"
 import { getProposals } from "@/lib/api"
 import { getUserData } from "@/lib/local"
-import type { User, Proposta } from "../../../shared/models"
+import type { User, ProposalSearchItem } from "../../../shared/models"
 
 export default function Profilo() {
   const [userData, setUserData] = useState<User | null>()
-  const [myProposals, setMyProposals] = useState<Proposta[]>([])
-  const [favoriteProposals, setFavoriteProposals] = useState<Proposta[]>([])
+  const [myProposals, setMyProposals] = useState<ProposalSearchItem[]>([])
+  const [favoriteProposals, setFavoriteProposals] = useState<ProposalSearchItem[]>([])
 
   const [error, setError] = useState<string | null>(null)
 
