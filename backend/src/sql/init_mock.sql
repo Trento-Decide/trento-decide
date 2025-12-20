@@ -13,9 +13,9 @@ INSERT INTO users (username, email, password_hash, role_id, email_opt_in) VALUES
 
 ('bob', 'bob@example.com', 
  '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa', 
- (SELECT id FROM roles WHERE code = 'cittadino'), TRUE);
+ (SELECT id FROM roles WHERE code = 'cittadino'), TRUE),
 
- ('enpa', 'enpa@example.com', 
+('enpa', 'enpa@example.com', 
  '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa', 
  (SELECT id FROM roles WHERE code = 'associazione'), TRUE);
 
