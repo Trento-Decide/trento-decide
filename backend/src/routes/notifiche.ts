@@ -8,7 +8,10 @@ const router = express.Router()
 router.get(
   "/",
   authenticateToken,
-  async (req: Request<{}, unknown, {}, { unreadOnly?: string }>, res: Response<Notification[] | { error: string }>) => {
+  async (
+    req: Request<Record<string, never>, unknown, Record<string, never>, { unreadOnly?: string }>,
+    res: Response<Notification[] | { error: string }>,
+  ) => {
     const userId = Number(req.user!.sub) 
     
     const unreadOnly = req.query.unreadOnly === "true"
