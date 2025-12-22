@@ -54,7 +54,7 @@ export function VoteWidget({ proposalId, initialVotes, onVotesChange }: VoteWidg
         setVotes(res.totalVotes)
         onVotesChange?.(res.totalVotes)
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Errore nel salvataggio del voto:", err)
       setError("Errore nel salvataggio del voto. Riprova.")
     } finally {
