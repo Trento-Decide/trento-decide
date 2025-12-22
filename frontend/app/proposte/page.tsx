@@ -7,10 +7,10 @@ import { ApiError } from "next/dist/server/api-utils"
 import Breadcrumb from "@/app/components/Breadcrumb"
 import PropostaCard from "@/app/components/PropostaCard"
 import { getProposals } from "@/lib/api"
-import { Proposta } from "../../../shared/models"
+import { ProposalSearchItem } from "../../../shared/models"
 
 export default function ProposteList() {
-  const [proposals, setProposals] = useState<Proposta[]>([])
+  const [proposals, setProposals] = useState<ProposalSearchItem[]>([])
   
   const [error, setError] = useState<string | null>(null)
 

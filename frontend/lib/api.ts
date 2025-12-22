@@ -1,11 +1,11 @@
 import { ApiError } from "next/dist/server/api-utils"
 import type { 
-  Proposta, 
+  Proposal,
+  ProposalSearchItem,
   User, 
-  Filters,
   ProposalFilters,
   GlobalSearchFilters,
-  SearchResultItem
+  GlobalSearchItem
 } from "../../shared/models" 
 import { logout } from "@/lib/local"
 
@@ -86,7 +86,7 @@ export const login = async (email: string, password: string) => {
   return body
 }
 
-export const globalSearch = async (filters: GlobalSearchFilters): Promise<{ data: SearchResultItem[] }> => {
+export const globalSearch = async (filters: GlobalSearchFilters): Promise<{ data: GlobalSearchItem[] }> => {
   const url = new URL(`${apiUrl}/cerca`)
 
   Object.keys(filters).forEach(key => {
@@ -105,7 +105,7 @@ export const globalSearch = async (filters: GlobalSearchFilters): Promise<{ data
   return handleResponse(res)
 }
 
-export const getProposals = async (filters: ProposalFilters = {}): Promise<{ data: Proposta[] }> => {
+export const getProposals = async (filters: ProposalFilters = {}): Promise<{ data: ProposalSearchItem[] }> => {
   const url = new URL(`${apiUrl}/proposte`)
 
   Object.keys(filters).forEach(key => {
@@ -124,7 +124,7 @@ export const getProposals = async (filters: ProposalFilters = {}): Promise<{ dat
   return handleResponse(res)
 }
 
-export const getProposal = async (id: number): Promise<{ data: Proposta }> => {
+export const getProposal = async (id: number): Promise<{ data: Proposal }> => {
   const url = `${apiUrl}/proposte/${id}`
   const res = await fetch(url, { method: "GET", headers: getAuthHeaders(true) })
   return handleResponse(res)

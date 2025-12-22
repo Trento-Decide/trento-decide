@@ -1,9 +1,8 @@
 ## Database
 
 ```bash
-psql -U postgres -c "CREATE DATABASE trentodecide;"
-cd backend/src/sql
-psql -U postgres -d trentodecide -f init.sql
+psql -h localhost -U postgres -c "CREATE DATABASE trentodecide;"
+psql -h localhost -U postgres -d trentodecide -f backend/src/sql/init.sql
 ```
 
 ## Sviluppo

@@ -1,10 +1,21 @@
 import Link from "next/link"
 import { globalSearch } from "@/lib/api"
 import SearchFilters from "@/app/components/SearchFilters"
-import type { GlobalSearchFilters } from "../../../shared/models" 
+import type { GlobalSearchFilters, GlobalSearchItem } from "../../../shared/models" 
 import { theme } from "@/lib/theme"
 
 export const dynamic = 'force-dynamic'
+
+function getString(param: string | string[] | undefined): string | undefined {
+  return typeof param === "string" ? param : undefined
+}
+
+function getNumber(param: string | string[] | undefined): number | undefined {
+  const val = getString(param)
+  if (!val) return undefined
+  const num = parseInt(val, 10)
+  return isNaN(num) ? undefined : num
+}
 
 export default async function SearchPage({
   searchParams,
@@ -15,10 +26,22 @@ export default async function SearchPage({
   const resolvedParams = await searchParams;
 
   const filters: GlobalSearchFilters = {
-    q: typeof resolvedParams.q === "string" ? resolvedParams.q : "",
+    q: getString(resolvedParams.q) ?? "",
     titlesOnly: resolvedParams.titlesOnly === "true",
-    author: typeof resolvedParams.author === "string" ? resolvedParams.author : undefined,
-    ...resolvedParams as any 
+    type: (getString(resolvedParams.type) as GlobalSearchFilters["type"]) ?? "all",
+    
+    authorUsername: getString(resolvedParams.author),
+    categoryCode: getString(resolvedParams.category),
+    statusCode: getString(resolvedParams.status),
+    
+    minVotes: getNumber(resolvedParams.minVotes),
+    maxVotes: getNumber(resolvedParams.maxVotes),
+    
+    dateFrom: getString(resolvedParams.dateFrom),
+    dateTo: getString(resolvedParams.dateTo),
+    
+    sortBy: getString(resolvedParams.sortBy) as GlobalSearchFilters["sortBy"],
+    sortOrder: getString(resolvedParams.sortOrder) as GlobalSearchFilters["sortOrder"],
   }
 
   const { data: results } = await globalSearch(filters)
@@ -68,7 +91,7 @@ export default async function SearchPage({
             </div>
           ) : (
             <div className="d-flex flex-column gap-3">
-              {results.map((item) => (
+              {results.map((item: GlobalSearchItem) => (
                 <div key={`${item.type}-${item.id}`} className="card shadow-sm border-0 hover-effect">
                   <div className="card-body">
                     <div className="d-flex justify-content-between align-items-start mb-2">
@@ -99,7 +122,7 @@ export default async function SearchPage({
                     </h5>
                     
                     <p className="card-text text-secondary mb-3">
-                      {item.description?.length > 180 
+                      {item.description && item.description.length > 180 
                         ? item.description.substring(0, 180) + "..." 
                         : item.description}
                     </p>
@@ -120,9 +143,9 @@ export default async function SearchPage({
                           )}
                        </div>
                        
-                       {item.score !== undefined && (
+                       {'voteValue' in item && item.voteValue !== undefined && (
                          <div className="fw-bold" style={{ color: theme.primary }}>
-                           {item.score} {item.score === 1 ? 'voto' : 'voti'}
+                           {item.voteValue} {item.voteValue === 1 ? 'voto' : 'voti'}
                          </div>
                        )}
                     </div>

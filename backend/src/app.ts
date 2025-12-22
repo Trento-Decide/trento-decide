@@ -1,12 +1,14 @@
-import express, {
-  type Application,
-} from "express"
+import express, { type Application } from "express"
 import cors from "cors"
 
 import getEnvVar from "../../shared/env.js"
-import proposteRouter from "./routes/proposte.js"
+
 import authRouter from "./routes/auth.js"
-import searchRouter from './routes/search.js'; 
+import proposteRouter from "./routes/proposte.js"
+import cercaRouter from "./routes/cerca.js"
+import sondaggiRouter from "./routes/sondaggi.js"
+import allegatiRouter from "./routes/allegati.js"
+import notificheRouter from "./routes/notifiche.js"
 
 export function createApp(): Application {
   const app = express()
@@ -26,9 +28,21 @@ export function createApp(): Application {
 
   app.use(express.json())
 
-  app.use("/proposte", proposteRouter)
   app.use("/auth", authRouter)
-  app.use("/cerca", searchRouter)
+
+  app.use("/proposte", proposteRouter)
+
+  app.use("/sondaggi", sondaggiRouter)
+
+  app.use("/cerca", cercaRouter)
+
+  app.use("/notifiche", notificheRouter)
+
+  app.use("/", allegatiRouter)
+
+  app.use((req, res) => {
+    res.status(404).json({ error: "Endpoint not found" })
+  })
 
   return app
 }

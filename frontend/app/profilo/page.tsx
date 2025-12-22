@@ -6,12 +6,14 @@ import { ApiError } from "next/dist/server/api-utils"
 import PropostaCard from "@/app/components/PropostaCard"
 import { getProposals } from "@/lib/api"
 import { getUserData } from "@/lib/local"
-import type { User, Proposta } from "../../../shared/models"
+import type { User, ProposalSearchItem } from "../../../shared/models"
 
 export default function Profilo() {
   const [userData, setUserData] = useState<User | null>()
-  const [myProposals, setMyProposals] = useState<Proposta[]>([])
-  const [favoriteProposals, setFavoriteProposals] = useState<Proposta[]>([])
+  const [myProposals, setMyProposals] = useState<ProposalSearchItem[]>([])
+  const [favoriteProposals, setFavoriteProposals] = useState<ProposalSearchItem[]>([])
+  
+  const [activeTab, setActiveTab] = useState<string>("dati")
 
   const [error, setError] = useState<string | null>(null)
 
@@ -41,14 +43,18 @@ export default function Profilo() {
   }, [])
 
   useEffect(() => {
-    const hash = window.location.hash
-    if (hash === "#mie-proposte" || hash === "#preferiti") {
-      const tabEl = document.querySelector(`button[data-bs-target="${hash}"]`) as HTMLElement
-      if (tabEl) {
-        tabEl.click()
-      }
+    const hash = window.location.hash.replace("#", "")
+    const validTabs = ["dati", "mie-proposte", "preferiti"]
+
+    if (validTabs.includes(hash)) {
+      setActiveTab(hash)
     }
   }, [])
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId)
+    window.history.replaceState(null, "", `#${tabId}`)
+  }
 
   if (error) return <div className="container my-4">{error}</div>
 
@@ -57,16 +63,13 @@ export default function Profilo() {
   return (
     <div className="container my-4">
       <ul className="nav nav-tabs mb-4" id="profileTabs" role="tablist">
+        {/* Dati Personali */}
         <li className="nav-item" role="presentation">
           <button
-            className="nav-link active d-flex align-items-center"
-            id="dati-tab"
-            data-bs-toggle="tab"
-            data-bs-target="#dati"
+            className={`nav-link d-flex align-items-center ${activeTab === "dati" ? "active" : ""}`}
             type="button"
             role="tab"
-            aria-controls="dati"
-            aria-selected="true"
+            onClick={() => handleTabChange("dati")}
           >
             <svg className="icon icon-sm me-2" role="presentation" focusable="false">
               <use href="/svg/sprites.svg#it-user"></use>
@@ -74,17 +77,14 @@ export default function Profilo() {
             Dati personali
           </button>
         </li>
+
+        {/* Le mie proposte */}
         <li className="nav-item" role="presentation">
           <button
-            className="nav-link d-flex align-items-center"
-            id="mie-proposte-tab"
-            data-bs-toggle="tab"
-            data-bs-target="#mie-proposte"
+            className={`nav-link d-flex align-items-center ${activeTab === "mie-proposte" ? "active" : ""}`}
             type="button"
             role="tab"
-            aria-controls="mie-proposte"
-            aria-selected="false"
-            tabIndex={-1}
+            onClick={() => handleTabChange("mie-proposte")}
           >
             <svg className="icon icon-sm me-2" role="presentation" focusable="false">
               <use href="/svg/sprites.svg#it-file"></use>
@@ -92,17 +92,14 @@ export default function Profilo() {
             Le mie proposte
           </button>
         </li>
+
+        {/* Preferiti */}
         <li className="nav-item" role="presentation">
           <button
-            className="nav-link d-flex align-items-center"
-            id="preferiti-tab"
-            data-bs-toggle="tab"
-            data-bs-target="#preferiti"
+            className={`nav-link d-flex align-items-center ${activeTab === "preferiti" ? "active" : ""}`}
             type="button"
             role="tab"
-            aria-controls="preferiti"
-            aria-selected="false"
-            tabIndex={-1}
+            onClick={() => handleTabChange("preferiti")}
           >
             <svg className="icon icon-sm me-2" role="presentation" focusable="false">
               <use href="/svg/custom.svg#heart"></use>
@@ -111,12 +108,12 @@ export default function Profilo() {
           </button>
         </li>
       </ul>
+
       <div className="tab-content mt-5" id="profileTabsContent">
+        {/* Dati personali */}
         <div
-          className="tab-pane fade show active"
-          id="dati"
+          className={`tab-pane fade ${activeTab === "dati" ? "show active" : ""}`}
           role="tabpanel"
-          aria-labelledby="dati-tab"
         >
             <div className="column">
               <div className="col-12 col-md-6">
@@ -165,11 +162,11 @@ export default function Profilo() {
               </div>
             </div>
         </div>
+
+        {/* Mie Proposte */}
         <div
-          className="tab-pane fade"
-          id="mie-proposte"
+          className={`tab-pane fade ${activeTab === "mie-proposte" ? "show active" : ""}`}
           role="tabpanel"
-          aria-labelledby="mie-proposte-tab"
         >
           <div className="row">
             <div className="col-12">
@@ -180,11 +177,11 @@ export default function Profilo() {
             </div>
           </div>
         </div>
+
+        {/* Preferiti */}
         <div
-          className="tab-pane fade"
-          id="preferiti"
+          className={`tab-pane fade ${activeTab === "preferiti" ? "show active" : ""}`}
           role="tabpanel"
-          aria-labelledby="preferiti-tab"
         >
           <div className="row">
             <div className="col-12">
