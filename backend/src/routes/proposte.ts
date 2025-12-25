@@ -93,6 +93,11 @@ router.post(
         return res.status(400).json({ error: "Category ID required" })
       }
 
+      const categoryCheck = await pool.query(`SELECT 1 FROM categories WHERE id = $1`, [categoryId]);
+      if (categoryCheck.rowCount === 0) {
+        return res.status(400).json({ error: "Invalid Category ID" });
+      }
+
       const insertRes = await pool.query(
         `INSERT INTO proposals (
             title, description, category_id, author_id, status_id, additional_data, current_version, created_at, updated_at
@@ -123,20 +128,31 @@ router.patch(
       const { title, description, additionalData } = req.body
 
       const check = await pool.query(
-        `SELECT p.author_id, s.code as status_code 
+        `SELECT p.author_id, p.category_id, s.code as status_code 
          FROM proposals p 
          JOIN statuses s ON p.status_id = s.id 
-         WHERE p.id = $1`, 
-        [proposalId]
+         WHERE p.id = $1`,
+        [proposalId],
       )
 
       if (check.rowCount === 0) return res.status(404).json({ error: "Not found" })
       const meta = check.rows[0]
 
       if (meta.author_id !== userId) return res.status(403).json({ error: "Unauthorized" })
-      
-      if (meta.status_code !== 'bozza') {
+
+      if (meta.status_code !== "bozza") {
         return res.status(400).json({ error: "Cannot patch a published proposal. Use PUT to update." })
+      }
+
+      if (additionalData) {
+        try {
+          await validateAdditionalDataByCategoryId(meta.category_id, additionalData)
+        } catch (err) {
+            if (err instanceof Error) {
+                return res.status(400).json({ error: `Invalid additional data: ${err.message}` });
+            }
+            throw err;
+        }
       }
 
       const fields: string[] = []
@@ -169,13 +185,23 @@ router.post(
     try {
         const proposalId = Number(req.params.id)
         const userId = Number(req.user!.sub)
-  
-        const propRes = await pool.query(`SELECT * FROM proposals WHERE id = $1`, [proposalId])
+
+        const propRes = await pool.query(
+          `SELECT p.*, s.code as status_code
+           FROM proposals p
+           JOIN statuses s ON p.status_id = s.id
+           WHERE p.id = $1`,
+          [proposalId]
+        )
         if (propRes.rowCount === 0) return res.status(404).json({ error: "Not found" })
         const proposal = propRes.rows[0]
   
         if (proposal.author_id !== userId) return res.status(403).json({ error: "Unauthorized" })
   
+        if (proposal.status_code !== 'bozza') {
+          return res.status(400).json({ error: "Proposal is not a draft and cannot be published." });
+        }
+
         if (!proposal.title || proposal.title.length < 5) return res.status(400).json({ error: "Title invalid" })
         await validateAdditionalDataByCategoryId(proposal.category_id, proposal.additional_data)
         await validateRequiredFilesByCategoryId(proposal.category_id, proposalId)
