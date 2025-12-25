@@ -8,7 +8,7 @@ import { ApiError } from "next/dist/server/api-utils"
 import Breadcrumb from "@/app/components/Breadcrumb"
 import { getProposal, addFavouriteProposal, removeFavouriteProposal } from "@/lib/api"
 import type { Proposal } from "../../../../shared/models"
-import { VoteWidget } from "./VoteWidget"
+import { VoteWidget } from "@/app/components/VoteWidget"
 
 export default function PropostaDettaglio() {
   const { id } = useParams() as { id?: number }
