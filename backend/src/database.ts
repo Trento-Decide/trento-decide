@@ -1,14 +1,14 @@
 import { Pool } from "pg"
 import fs from "fs/promises"
 
-import getEnvVar from "../../shared/env.js"
+import getEnvVar, { getOptionalEnvVar } from "./utils/env.js"
 
 export const pool = new Pool({
   host: getEnvVar("DB_HOST"),
   port: Number(getEnvVar("DB_PORT")),
   database: getEnvVar("DB_NAME"),
   user: getEnvVar("DB_USER"),
-  password: getEnvVar("DB_PASSWORD"),
+  password: getOptionalEnvVar("DB_PASSWORD"),
 })
 
 const runQueryFile = async (file: string) => {

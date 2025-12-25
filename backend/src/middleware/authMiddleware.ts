@@ -1,7 +1,7 @@
 import { type Request, type Response, type NextFunction } from "express"
 import jwt, { type Secret } from "jsonwebtoken"
 
-import getEnvVar from "../../../shared/env.js"
+import getEnvVar from "../utils/env.js"
 import type { JwtUserPayload } from "../../../shared/auth.js"
 
 declare module "express-serve-static-core" {

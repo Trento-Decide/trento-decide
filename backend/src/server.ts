@@ -1,6 +1,6 @@
 import "dotenv/config"
 
-import getEnvVar from "../../shared/env.js"
+import getEnvVar from "./utils/env.js"
 import { pool, initDevDb, initProdDb } from "./database.js"
 import { createApp } from "./app.js"
 
@@ -30,7 +30,7 @@ const server = app.listen(port, () => {
 process.on("SIGINT", async () => {
   console.log("Shutting down gracefully...")
   server.close()
-  
+
   await pool.end()
   console.log("Database pool closed.")
 

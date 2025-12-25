@@ -1,5 +1,5 @@
 import jwt, { type Secret, type SignOptions } from "jsonwebtoken"
-import getEnvVar from "../../../shared/env.js"
+import getEnvVar from "./env.js"
 import type { JwtUserPayload } from "../../../shared/auth.js"
 
 export function signJwt(
