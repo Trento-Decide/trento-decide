@@ -1,6 +1,6 @@
 export type ID = number
 export type ISODateString = string
-export type LocalizedText = { [lang: string]: string };
+export type LocalizedText = { [lang: string]: string }
 
 export interface RoleRef {
   id: ID
@@ -355,6 +355,18 @@ export interface Notification {
   relatedObjectId?: ID
   relatedObjectType?: EntityType
   createdAt: ISODateString
+}
+
+export class ApiError extends Error {
+  public readonly statusCode?: number
+
+  constructor(message: string, statusCode?: number) {
+    super(message)
+    this.name = this.constructor.name
+    this.statusCode = statusCode
+
+    Object.setPrototypeOf(this, ApiError.prototype)
+  }
 }
 
 export type GlobalSearchItem = ProposalSearchItem | PollSearchItem

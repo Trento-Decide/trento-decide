@@ -3,12 +3,13 @@
 import { useState } from "react"
 
 import { useRouter } from "next/navigation"
-import { ApiError } from "next/dist/server/api-utils"
 
 import { providerLogin } from "@/lib/api"
+import ErrorDisplay from "@/app/components/ErrorDisplay"
+import { ApiError } from "../../../shared/models"
 
 export default function Registrati() {
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ApiError | null>(null)
 
   const router = useRouter()
 
@@ -17,13 +18,20 @@ export default function Registrati() {
     try {
       await providerLogin()
       router.push("/registrati/crea")
-    } catch (err) {
-      if (err instanceof ApiError)
-        setError(err.message)
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setError(err)
+      } else if (err instanceof Error) {
+        setError(new ApiError(err.message))
+      }
     }
   }
 
-  if (error) return <div className="container my-4">{error}</div>
+  if (error) return (
+    <div className="container my-4">
+      <ErrorDisplay error={error} />
+    </div>
+  )
 
   return (
     <div className="container py-5">

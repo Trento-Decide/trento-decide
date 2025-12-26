@@ -3,7 +3,7 @@
 - [x] RF1.3     Login
 - [x] RF1.4     Logout
 - [ ] RF1.5.2   Ricezione notifiche
-- [ ] RF1.5.3   Eliminazione del profilo
+- [x] RF1.5.3   Eliminazione del profilo
 - [x] RF2.1     Creazione proposta
 - [x] RF2.1.1   Scartare proposta
 - [x] RF2.2     Salvataggio come bozza
@@ -73,7 +73,7 @@ nota: solo rimozione contenuto, niente form descrittivi
 - [x] RF2.1     Creazione proposta
 - [x] RF2.1.1   Scartare proposta
 - [x] RF3.1     Gestione dei preferiti
-- [ ] RF1.5.3   Eliminazione del profilo
+- [x] RF1.5.3   Eliminazione del profilo
 - [x] RF2.2     Salvataggio come bozza
 - [x] RF2.5     Eliminazione proposta
 - [ ] RF2.7     Visualizzazione proposte e sondaggi

@@ -3,18 +3,18 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ApiError } from "next/dist/server/api-utils"
 
 import { getProposal, addFavouriteProposal, removeFavouriteProposal } from "@/lib/api"
 import Breadcrumb from "@/app/components/Breadcrumb"
+import ErrorDisplay from "@/app/components/ErrorDisplay"
 import { VoteWidget } from "@/app/components/VoteWidget"
-import type { Proposal } from "../../../../shared/models"
+import { Proposal, ApiError } from "../../../../shared/models"
 
 export default function ProposalDetail() {
   const { id } = useParams() as { id?: number }
   const [isFavourited, setIsFavourited] = useState(false)
   const [proposal, setProposal] = useState<Proposal | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ApiError | null>(null)
 
   const categoryIcon: Record<string, string> = {
     "Urbanistica": "it-map-marker",
@@ -40,7 +40,9 @@ export default function ProposalDetail() {
         setIsFavourited(Boolean(proposal.isFavourited))
       } catch (err: unknown) {
         if (err instanceof ApiError) {
-          setError(err.message)
+          setError(err)
+        } else if (err instanceof Error) {
+          setError(new ApiError(err.message))
         }
       }
     }
@@ -64,7 +66,11 @@ export default function ProposalDetail() {
     }
   }
 
-  if (error) return <div className="container my-4">Errore: {error}</div>
+  if (error) return (
+    <div className="container my-4">
+      <ErrorDisplay error={error} />
+    </div>
+  )
   if (!proposal) return <div className="container my-4">Nessuna proposta disponibile.</div>
 
   return (

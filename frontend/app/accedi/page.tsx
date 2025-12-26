@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-
 import { useRouter } from "next/navigation"
-import { ApiError } from "next/dist/server/api-utils"
 
 import { login } from "@/lib/api"
+import ErrorDisplay from "@/app/components/ErrorDisplay"
+import { ApiError } from "../../../shared/models"
 
 export default function LogIn() {
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ApiError | null>(null)
 
   const router = useRouter()
 
@@ -21,9 +21,14 @@ export default function LogIn() {
     try {
       await login(email, password)
       router.push("/profilo")
-    } catch (err) {
-      if (err instanceof ApiError)
-        setError(err.message)
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setError(err)
+      } else if (err instanceof Error) {
+        setError(new ApiError(err.message))
+      } else {
+        setError(new ApiError("Si è verificato un errore imprevisto"))
+      }
     }
   }
 
@@ -64,7 +69,7 @@ export default function LogIn() {
                   </div>
                 </div>
 
-                {error && <div className="alert alert-danger">{error}</div>}
+                {error && <ErrorDisplay error={error} className="mb-4" />}
 
                 <div className="d-grid gap-2 mt-5">
                   <button type="submit" className="btn btn-primary btn-lg">

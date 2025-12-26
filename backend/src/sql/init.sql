@@ -53,7 +53,7 @@ CREATE TABLE proposals (
   current_version INTEGER NOT NULL DEFAULT 1, 
   category_id INTEGER REFERENCES categories(id),
   status_id INTEGER NOT NULL REFERENCES statuses(id),
-  author_id INTEGER NOT NULL REFERENCES users(id),
+  author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ
 );
@@ -83,7 +83,7 @@ CREATE TABLE polls (
   title VARCHAR(255) NOT NULL,
   description TEXT,
   category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
-  created_by INTEGER NOT NULL REFERENCES users(id),
+  created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   is_active BOOLEAN DEFAULT TRUE,
   expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

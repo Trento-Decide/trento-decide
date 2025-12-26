@@ -3,12 +3,13 @@
 import { useState } from "react"
 
 import { useRouter } from "next/navigation"
-import { ApiError } from "next/dist/server/api-utils"
 
 import { register } from "@/lib/api"
+import ErrorDisplay from "@/app/components/ErrorDisplay"
+import { ApiError } from "../../../../shared/models"
 
 export default function Accedi() {
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ApiError | null>(null)
 
   const router = useRouter()
 
@@ -23,9 +24,12 @@ export default function Accedi() {
       await register(username, email, password)
       // await login(email, password)
       router.push("/accedi")
-    } catch (err) {
-      if (err instanceof ApiError)
-        setError(err.message)
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setError(err)
+      } else if (err instanceof Error) {
+        setError(new ApiError(err.message))
+      }
     }
   }
 
@@ -81,7 +85,7 @@ export default function Accedi() {
                   </div>
                 </div>
 
-                {error && <div className="alert alert-danger">{error}</div>}
+                {error && <ErrorDisplay error={error} />}
 
                 <div className="d-grid mt-2">
                   <button type="submit" className="btn btn-primary btn-lg">

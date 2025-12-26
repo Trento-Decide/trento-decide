@@ -4,6 +4,7 @@ import cors from "cors"
 import getEnvVar from "./utils/env.js"
 
 import authRouter from "./routes/auth.js"
+import utenteRouter from "./routes/utente.js"
 import proposteRouter from "./routes/proposte.js"
 import cercaRouter from "./routes/cerca.js"
 import sondaggiRouter from "./routes/sondaggi.js"
@@ -30,6 +31,8 @@ export function createApp(): Application {
   app.use(express.json())
 
   app.use("/auth", authRouter)
+
+  app.use("/utente", utenteRouter)
 
   app.use("/proposte", proposteRouter)
 

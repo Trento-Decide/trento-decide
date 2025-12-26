@@ -2,20 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ApiError } from "next/dist/server/api-utils"
 
 import { createDraft, saveDraft, publishProposal, getProposal, updateProposal, deleteProposal } from "@/lib/api"
 import { getUserData } from "@/lib/local"
 import Breadcrumb from "@/app/components/Breadcrumb"
 import ProposalForm from "@/app/components/ProposalForm"
-import type { ProposalInput } from "../../../../shared/models"
+import ErrorDisplay from "@/app/components/ErrorDisplay"
+import { ProposalInput, ApiError } from "../../../../shared/models"
 
 export default function ProposalEditor() {
   const [proposal, setProposal] = useState<ProposalInput>({
     title: "",
     description: "",
   })
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ApiError | null>(null)
 
   const [proposalId, setProposalId] = useState<number | null>(null)
   const [statusCode, setStatusCode] = useState<string | null>(null)
@@ -52,9 +52,9 @@ export default function ProposalEditor() {
 
         if (!owner) return
       } catch (err) {
-        if (err instanceof ApiError) setError(err.message)
-        else if (err instanceof Error) setError(err.message)
-        else setError("Errore caricamento proposta")
+        if (err instanceof ApiError) setError(err)
+        else if (err instanceof Error) setError(new ApiError(err.message))
+        else setError(new ApiError("Errore caricamento proposta"))
       }
     }
 
@@ -82,9 +82,9 @@ export default function ProposalEditor() {
       await saveOrCreateDraft()
       router.push(`/profilo#mie-proposte`)
     } catch (err) {
-      if (err instanceof ApiError) setError(err.message)
-      else if (err instanceof Error) setError(err.message)
-      else setError("Errore sconosciuto")
+      if (err instanceof ApiError) setError(err)
+      else if (err instanceof Error) setError(new ApiError(err.message))
+      else setError(new ApiError("Errore sconosciuto"))
     }
   }
 
@@ -96,9 +96,9 @@ export default function ProposalEditor() {
       await publishProposal(id)
       router.push(`/profilo#mie-proposte`)
     } catch (err) {
-      if (err instanceof ApiError) setError(err.message)
-      else if (err instanceof Error) setError(err.message)
-      else setError("Errore sconosciuto")
+      if (err instanceof ApiError) setError(err)
+      else if (err instanceof Error) setError(new ApiError(err.message))
+      else setError(new ApiError("Errore sconosciuto"))
     }
   }
 
@@ -110,9 +110,9 @@ export default function ProposalEditor() {
       await updateProposal(proposalId, proposal)
       router.push(`/profilo#mie-proposte`)
     } catch (err) {
-      if (err instanceof ApiError) setError(err.message)
-      else if (err instanceof Error) setError(err.message)
-      else setError("Errore sconosciuto")
+      if (err instanceof ApiError) setError(err)
+      else if (err instanceof Error) setError(new ApiError(err.message))
+      else setError(new ApiError("Errore sconosciuto"))
     }
   }
 
@@ -129,9 +129,9 @@ export default function ProposalEditor() {
       await deleteProposal(proposalId)
       router.push(`/profilo#mie-proposte`)
     } catch (err) {
-      if (err instanceof ApiError) setError(err.message)
-      else if (err instanceof Error) setError(err.message)
-      else setError("Errore nello eliminare la proposta")
+      if (err instanceof ApiError) setError(err)
+      else if (err instanceof Error) setError(new ApiError(err.message))
+      else setError(new ApiError("Errore nello eliminare la proposta"))
     }
   }
 
@@ -204,7 +204,7 @@ export default function ProposalEditor() {
         </div>
       )}
 
-      {error && <div className="alert alert-danger mt-4">{error}</div>}
+      {error && <ErrorDisplay error={error} />}
     </div>
   )
 }

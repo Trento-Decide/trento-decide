@@ -1,21 +1,26 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ApiError } from "next/dist/server/api-utils"
+import { useRouter } from "next/navigation"
 
 import ProposalCard from "@/app/components/ProposalCard"
-import { getProposals } from "@/lib/api"
+import ErrorDisplay from "@/app/components/ErrorDisplay"
+import { getProposals, deleteProfile } from "@/lib/api"
 import { getUserData } from "@/lib/local"
-import type { User, ProposalSearchItem } from "../../../shared/models"
+import { ApiError, User, ProposalSearchItem } from "../../../shared/models"
 
 export default function Profile() {
+  const router = useRouter()
   const [userData, setUserData] = useState<User | null>()
   const [myProposals, setMyProposals] = useState<ProposalSearchItem[]>([])
   const [favoriteProposals, setFavoriteProposals] = useState<ProposalSearchItem[]>([])
 
   const [activeTab, setActiveTab] = useState<string>("dati")
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ApiError | null>(null)
+  const [deleteError, setDeleteError] = useState<ApiError | null>(null)
+
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -34,7 +39,9 @@ export default function Profile() {
         setFavoriteProposals(favs)
       } catch (err: unknown) {
         if (err instanceof ApiError) {
-          setError(err.message)
+          setError(err)
+        } else if (err instanceof Error) {
+          setError(new ApiError(err.message))
         }
       }
     }
@@ -49,12 +56,11 @@ export default function Profile() {
       if (validTabs.includes(hash)) {
         setActiveTab(hash)
       } else {
-        // an empty hash, #, or an invalid one should default to the first tab
         setActiveTab("dati")
       }
     }
 
-    handleHashChange() // set tab on initial load
+    handleHashChange()
 
     window.addEventListener("hashchange", handleHashChange)
     return () => {
@@ -67,7 +73,34 @@ export default function Profile() {
     window.history.replaceState(null, "", `#${tabId}`)
   }
 
-  if (error) return <div className="container my-4">{error}</div>
+  const handleDeleteProfile = async () => {
+    if (!confirm("Sei sicuro di voler eliminare il tuo profilo? Questa azione è irreversibile e cancellerà tutte le tue proposte e i tuoi dati.")) {
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      setDeleteError(null)
+      await deleteProfile()
+      router.push("/")
+      router.refresh()
+    } catch (err: unknown) {
+      console.error("Errore durante l'eliminazione del profilo:", err)
+      if (err instanceof ApiError) {
+        setDeleteError(err)
+      } else {
+        setDeleteError(new ApiError("Si è verificato un errore durante l'eliminazione del profilo. Riprova più tardi."))
+      }
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  if (error) return (
+    <div className="container my-4">
+      <ErrorDisplay error={error} />
+    </div>
+  )
 
   if (!userData) return <div className="container my-4"> Failed to fetch user data </div>
 
@@ -126,8 +159,8 @@ export default function Profile() {
           className={`tab-pane fade ${activeTab === "dati" ? "show active" : ""}`}
           role="tabpanel"
         >
-            <div className="column">
-              <div className="col-12 col-md-6">
+            <div className="row">
+              <div className="col-12">
                 <div className="form-group mb-4">
                   <label htmlFor="username" className="active">
                     Username *
@@ -143,7 +176,7 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="col-12 col-md-6">
+              <div className="col-12">
                 <div className="form-group mb-4">
                   <label htmlFor="email" className="active">
                     Indirizzo email *
@@ -159,7 +192,7 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="col-12 col-md-6">
+              <div className="col-12">
                 <div className="form-group mb-4">
                   <label className="active d-block">Password *</label>
                   <a
@@ -170,6 +203,22 @@ export default function Profile() {
                     Aggiorna password
                   </a>
                 </div>
+              </div>
+
+              <div className="col-12 mt-4">
+                <hr />
+                <div className="d-flex justify-content-end">
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={handleDeleteProfile}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? "Eliminazione in corso..." : "Elimina profilo"}
+                  </button>
+                </div>
+                {deleteError && (
+                  <ErrorDisplay error={deleteError} />
+                )}
               </div>
             </div>
         </div>

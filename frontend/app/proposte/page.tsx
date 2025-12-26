@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ApiError } from "next/dist/server/api-utils"
 
 import { getProposals } from "@/lib/api"
 import Breadcrumb from "@/app/components/Breadcrumb"
 import ProposalCard from "@/app/components/ProposalCard"
-import { ProposalSearchItem } from "../../../shared/models"
+import ErrorDisplay from "@/app/components/ErrorDisplay"
+import { ProposalSearchItem, ApiError } from "../../../shared/models"
 
 export default function ProposalList() {
   const [proposals, setProposals] = useState<ProposalSearchItem[]>([])
 
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ApiError | null>(null)
 
   useEffect(() => {
     const fetchProposals = async () => {
@@ -21,7 +21,9 @@ export default function ProposalList() {
         setProposals(res)
       } catch (err: unknown) {
         if (err instanceof ApiError) {
-          setError(err.message)
+          setError(err)
+        } else if (err instanceof Error) {
+          setError(new ApiError(err.message))
         }
       }
     }
@@ -30,7 +32,11 @@ export default function ProposalList() {
   }, [])
 
   if (error) {
-    return <div className="container my-4">{error}</div>
+    return (
+      <div className="container my-4">
+        <ErrorDisplay error={error} />
+      </div>
+    )
   }
 
   if (proposals.length === 0) {
