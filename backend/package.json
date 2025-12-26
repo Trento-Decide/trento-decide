@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:init:dev": "tsx src/scripts/init_dev_db.ts",
+    "db:init:prod": "tsx src/scripts/init_prod_db.ts"
   },
   "keywords": [],
   "author": "",

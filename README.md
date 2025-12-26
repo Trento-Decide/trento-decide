@@ -1,40 +1,74 @@
-## Database
-
-```bash
-psql -h localhost -U postgres -c "CREATE DATABASE trentodecide;"
-psql -h localhost -U postgres -d trentodecide -f backend/src/sql/init.sql
-```
-
-## Sviluppo
+## Esecuzione
 
 1. Clona la repository
    ```bash
    git clone https://github.com/Trento-Decide/trento-decide.git
    ```
 
-2. Spostati sul front-end o back-end
+### Front-end
+
+2. Spostati nella cartella
    ```bash
-   cd backend
-   # oppure
    cd frontend
    ```
 
-3. Installa le dipendenze
-   ```bash
-   npm install
-   ```
-
-4. Copia il file di configurazione e modificalo
+3. Copia il file di configurazione e modificalo
    ```bash
    cp .env.example .env
    ```
 
-5. Avvia l'applicazione in modalità sviluppo
+4. Installa le dipendenze
+   ```bash
+   npm install
+   ```
+
+#### Sviluppo
+
+6. Avvia l'applicazione in modalità sviluppo
    ```bash
    npm run dev
    ```
 
-6. L'applicazione viene riavviata automaticamente al cambiamento del codice.
+### Back-end
+
+2. Spostati nella cartella
+   ```bash
+   cd backend
+   ```
+
+3. Copia il file di configurazione e modificalo
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Installa le dipendenze
+   ```bash
+   npm install
+   ```
+
+5. Crea il database
+   ```bash
+   psql -h localhost -U postgres -c "CREATE DATABASE trentodecide;"
+   ```
+
+### Sviluppo
+
+6. Avvia l'applicazione in modalità sviluppo
+   ```bash
+   npm run dev
+   ```
+
+7. Per (ri)caricare lo schema del DB con i dati fasulli si può eseguire
+   ```bash
+   npm run db:init:dev
+   ```
+
+### Produzione
+
+6. Per (ri)caricare lo schema del DB si può eseguire
+   ```bash
+   npm run db:init:prod
+   ```
 
 ## Stack
 

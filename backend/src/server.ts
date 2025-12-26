@@ -1,23 +1,8 @@
 import "dotenv/config"
 
 import getEnvVar from "./utils/env.js"
-import { pool, initDevDb, initProdDb } from "./database.js"
+import { pool } from "./database.js"
 import { createApp } from "./app.js"
-
-// Se siamo in fase di sviluppo inizializza il database con valori fasulli
-if (getEnvVar("NODE_ENV") === "development") {
-  try {
-    await initDevDb()
-  } catch (err) {
-    console.error(err)
-  }
-} else if (getEnvVar("NODE_ENV") === "production") {
-  try {
-    await initProdDb()
-  } catch (err) {
-    console.error(err)
-  }
-}
 
 const app = createApp()
 
