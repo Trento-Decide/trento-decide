@@ -51,7 +51,7 @@ CREATE TABLE proposals (
   vote_value INTEGER NOT NULL DEFAULT 0,
   additional_data JSONB NOT NULL DEFAULT '{}'::jsonb,
   current_version INTEGER NOT NULL DEFAULT 1, 
-  category_id INTEGER NOT NULL REFERENCES categories(id),
+  category_id INTEGER REFERENCES categories(id),
   status_id INTEGER NOT NULL REFERENCES statuses(id),
   author_id INTEGER NOT NULL REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

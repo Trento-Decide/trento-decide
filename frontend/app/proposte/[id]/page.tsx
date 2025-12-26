@@ -5,12 +5,12 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { ApiError } from "next/dist/server/api-utils"
 
-import Breadcrumb from "@/app/components/Breadcrumb"
 import { getProposal, addFavouriteProposal, removeFavouriteProposal } from "@/lib/api"
-import type { Proposal } from "../../../../shared/models"
+import Breadcrumb from "@/app/components/Breadcrumb"
 import { VoteWidget } from "@/app/components/VoteWidget"
+import type { Proposal } from "../../../../shared/models"
 
-export default function PropostaDettaglio() {
+export default function ProposalDetail() {
   const { id } = useParams() as { id?: number }
   const [isFavourited, setIsFavourited] = useState(false)
   const [proposal, setProposal] = useState<Proposal | null>(null)
@@ -35,9 +35,9 @@ export default function PropostaDettaglio() {
       setError(null)
       try {
         const numericId = Number(id)
-        const res = await getProposal(numericId)
-        setProposal(res.data)
-        setIsFavourited(Boolean(res.data.isFavourited))
+        const proposal = await getProposal(numericId)
+        setProposal(proposal)
+        setIsFavourited(Boolean(proposal.isFavourited))
       } catch (err: unknown) {
         if (err instanceof ApiError) {
           setError(err.message)
@@ -119,7 +119,7 @@ export default function PropostaDettaglio() {
             >
               <use href={isFavourited ? "/svg/custom.svg#heart-filled" : "/svg/custom.svg#heart"}></use>
             </svg>
-            <Link href={`/proposte/${proposal.id}/modifica`}>
+            <Link href={`/proposte/editor?proposalId=${proposal.id}`}>
               <svg
                 className="icon icon-warning"
                 role="button"

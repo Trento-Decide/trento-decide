@@ -1,25 +1,23 @@
 import { ApiError } from "next/dist/server/api-utils"
-import type { 
+
+import { logout } from "@/lib/local"
+import type {
   Proposal,
   ProposalSearchItem,
-  User, 
+  User,
   ProposalFilters,
   GlobalSearchFilters,
-  GlobalSearchItem
-} from "../../shared/models" 
-import { logout } from "@/lib/local"
+  GlobalSearchItem,
+  Category,
+  CategoryFormSchema,
+  ProposalInput,
+} from "../../shared/models"
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL
-
 
 const getToken = () => {
   if (typeof window === "undefined") return null
   return localStorage.getItem("accessToken")
-}
-
-const getProviderToken = () => {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem("providerToken")
 }
 
 const getAuthHeaders = (includeJson = true) => {
@@ -90,11 +88,11 @@ export const globalSearch = async (filters: GlobalSearchFilters): Promise<{ data
   const url = new URL(`${apiUrl}/cerca`)
 
   Object.keys(filters).forEach(key => {
-    const value = filters[key as keyof GlobalSearchFilters];
+    const value = filters[key as keyof GlobalSearchFilters]
     if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.append(key, String(value));
+      url.searchParams.append(key, String(value))
     }
-  });
+  })
 
   const res = await fetch(url.toString(), {
     method: "GET",
@@ -105,15 +103,15 @@ export const globalSearch = async (filters: GlobalSearchFilters): Promise<{ data
   return handleResponse(res)
 }
 
-export const getProposals = async (filters: ProposalFilters = {}): Promise<{ data: ProposalSearchItem[] }> => {
+export const getProposals = async (filters: ProposalFilters = {}): Promise<ProposalSearchItem[]> => {
   const url = new URL(`${apiUrl}/proposte`)
 
   Object.keys(filters).forEach(key => {
-    const value = filters[key as keyof ProposalFilters];
+    const value = filters[key as keyof ProposalFilters]
     if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.append(key, String(value));
+      url.searchParams.append(key, String(value))
     }
-  });
+  })
 
   const res = await fetch(url.toString(), {
     method: "GET",
@@ -124,19 +122,18 @@ export const getProposals = async (filters: ProposalFilters = {}): Promise<{ dat
   return handleResponse(res)
 }
 
-export const getProposal = async (id: number): Promise<{ data: Proposal }> => {
+export const getProposal = async (id: number): Promise<Proposal> => {
   const url = `${apiUrl}/proposte/${id}`
-  const res = await fetch(url, { method: "GET", headers: getAuthHeaders(true) })
+  const res = await fetch(url, { method: "GET", headers: getAuthHeaders(false) })
   return handleResponse(res)
 }
 
 export const getMyVoteForProposal = async (proposalId: number) => {
   const url = new URL(`${apiUrl}/proposte/${proposalId}/vota`)
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
 
   const res = await fetch(url.toString(), {
     method: "GET",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: getAuthHeaders(false),
   })
 
   const body = (await handleResponse(res)) as { vote: number | null }
@@ -145,73 +142,111 @@ export const getMyVoteForProposal = async (proposalId: number) => {
 
 export const voteOnProposal = async (proposalId: number, vote: 1 | -1) => {
   const url = new URL(`${apiUrl}/proposte/${proposalId}/vota`)
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
-  if (!token) throw new Error("Not authenticated")
 
   const res = await fetch(url.toString(), {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(true),
     body: JSON.stringify({ vote }),
   })
 
-  const body = (await handleResponse(res)) as { success: boolean; vote: number; totalVotes: number }
+  const body = (await handleResponse(res)) as { vote: number; totalVotes: number }
   return body
 }
 
 export const removeVoteFromProposal = async (proposalId: number) => {
   const url = new URL(`${apiUrl}/proposte/${proposalId}/vota`)
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
-  if (!token) throw new Error("Not authenticated")
 
   const res = await fetch(url.toString(), {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getAuthHeaders(false),
   })
 
-  const body = (await handleResponse(res)) as { success: boolean; totalVotes: number }
+  const body = (await handleResponse(res)) as { totalVotes: number }
   return body
 }
 
 export const addFavouriteProposal = async (proposalId: number) => {
   const url = new URL(`${apiUrl}/proposte/${proposalId}/preferisco`)
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
-  if (!token) throw new Error("Not authenticated")
 
   const res = await fetch(url.toString(), {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getAuthHeaders(false),
   })
 
-  const body = (await handleResponse(res)) as { success: boolean; isFavourited: boolean }
+  const body = (await handleResponse(res)) as { isFavourited: boolean }
   return body
 }
 
 export const removeFavouriteProposal = async (proposalId: number) => {
   const url = new URL(`${apiUrl}/proposte/${proposalId}/preferisco`)
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
-  if (!token) throw new Error("Not authenticated")
 
   const res = await fetch(url.toString(), {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getAuthHeaders(false),
   })
 
-  const body = (await handleResponse(res)) as { success: boolean; isFavourited: boolean }
+  const body = (await handleResponse(res)) as { isFavourited: boolean }
   return body
 }
 
 export const getFavoriteForProposal = async (proposalId: number) => {
-  const url = new URL(`${apiUrl}/proposte/${proposalId}/favorite`)
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+  const url = new URL(`${apiUrl}/proposte/${proposalId}/preferisco`)
 
   const res = await fetch(url.toString(), {
     method: "GET",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: getAuthHeaders(false),
   })
 
   const body = (await handleResponse(res)) as { isFavourited: boolean }
   return body.isFavourited
+}
+
+export const getCategories = async (): Promise<{ data: Category[] }> => {
+  const url = `${apiUrl}/config/categories`
+  const res = await fetch(url, { method: "GET", headers: getAuthHeaders(false), cache: "no-store" })
+  return handleResponse(res)
+}
+
+export const getCategoryFormSchema = async (categoryId: number): Promise<{ data: CategoryFormSchema }> => {
+  const url = `${apiUrl}/config/categories/${categoryId}/form`
+  const res = await fetch(url, { method: "GET", headers: getAuthHeaders(false), cache: "no-store" })
+  return handleResponse(res)
+}
+
+export const createDraft = async (input: ProposalInput) => {
+  const url = `${apiUrl}/proposte/bozza`
+  const res = await fetch(url, {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify(input),
+  })
+  return handleResponse<{ id: number }>(res)
+}
+
+export const saveDraft = async (proposalId: number, input: Partial<ProposalInput>) => {
+  const url = `${apiUrl}/proposte/${proposalId}`
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify(input),
+  })
+  return handleResponse(res)
+}
+
+export const publishProposal = async (proposalId: number) => {
+  const url = `${apiUrl}/proposte/${proposalId}/pubblica`
+  const res = await fetch(url, { method: "POST", headers: getAuthHeaders(false) })
+  return handleResponse(res)
+}
+
+export const updateProposal = async (proposalId: number, input: ProposalInput) => {
+  const url = `${apiUrl}/proposte/${proposalId}`
+  const res = await fetch(url, { method: "PUT", headers: getAuthHeaders(true), body: JSON.stringify(input) })
+  return handleResponse(res)
+}
+
+export const deleteProposal = async (proposalId: number) => {
+  const url = `${apiUrl}/proposte/${proposalId}`
+  const res = await fetch(url, { method: "DELETE", headers: getAuthHeaders(false) })
+  return handleResponse(res)
 }

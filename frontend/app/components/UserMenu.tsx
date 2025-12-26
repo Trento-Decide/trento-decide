@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { getUserData, logout } from "@/lib/local"
 import { theme } from "@/lib/theme"
 
@@ -16,6 +16,7 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -30,14 +31,14 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
   useEffect(() => {
     const update = () => {
       const user = getUserData()
-      if (user) setUserName(user.first || user.username) 
+      if (user) setUserName(user.username)
       else setUserName(null)
-      
+
       setIsLoading(false)
     }
-    
+
     update()
-    
+
     window.addEventListener("authChange", update)
     return () => window.removeEventListener("authChange", update)
   }, [])
@@ -50,6 +51,12 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
     router.refresh()
     router.push('/')
   }
+
+  const profileLinks = [
+    { href: "/profilo", hash: "#", label: "Dati personali", icon: "sprites.svg#it-user" },
+    { href: "/profilo#mie-proposte", hash: "#mie-proposte", label: "Le mie proposte", icon: "sprites.svg#it-file" },
+    { href: "/profilo#preferiti", hash: "#preferiti", label: "Preferiti", icon: "custom.svg#heart" },
+  ]
 
   return (
     <div className="d-flex align-items-center position-relative" ref={menuRef}>
@@ -84,13 +91,13 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
           font-weight: 500;
         }
 
-        :global(.dropdown-menu .menu-item-green:hover), 
-        :global(.dropdown-menu .menu-item-green:focus) { 
-          background-color: ${theme.hover.bgLight} !important; 
-          color: ${theme.primary} !important; 
+        :global(.dropdown-menu .menu-item-green:hover),
+        :global(.dropdown-menu .menu-item-green:focus) {
+          background-color: ${theme.hover.bgLight} !important;
+          color: ${theme.primary} !important;
         }
 
-        :global(.dropdown-menu .menu-item-green:hover svg), 
+        :global(.dropdown-menu .menu-item-green:hover svg),
         :global(.dropdown-menu .menu-item-green:focus svg) {
           fill: ${theme.primary} !important;
           color: ${theme.primary} !important;
@@ -110,9 +117,9 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
           text-underline-offset: 4px;
         }
 
-        .user-btn-hover:hover .user-name-text { 
-          text-decoration: underline !important; 
-          text-underline-offset: 4px; 
+        .user-btn-hover:hover .user-name-text {
+          text-decoration: underline !important;
+          text-underline-offset: 4px;
         }
 
         .skeleton-loader {
@@ -132,7 +139,7 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
           position: absolute !important; inset: auto !important; top: 100% !important; right: -10px !important; left: auto !important;
           margin-top: 0.5rem !important; display: block;
         }
-        
+
         :global(.force-align-menu::before),
         :global(.force-align-menu::after) {
           left: auto !important;
@@ -164,49 +171,56 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
               CIAO, {userName}
             </span>
 
-            <svg 
-              className={`icon icon-sm ms-1 icon-transition ${isOpen ? 'rotate-180' : ''}`} 
-              style={{ width: 16, height: 16, fill: "currentColor", stroke: "currentColor", strokeWidth: 1 }} 
+            <svg
+              className={`icon icon-sm ms-1 icon-transition ${isOpen ? 'rotate-180' : ''}`}
+              style={{ width: 16, height: 16, fill: "currentColor", stroke: "currentColor", strokeWidth: 1 }}
               aria-hidden="true"
             >
               <use href="/svg/sprites.svg#it-expand"></use>
             </svg>
           </button>
-          
+
           {isOpen && (
-            <ul 
-              className="dropdown-menu show shadow border-0 mt-2 p-1 force-align-menu menu-animate" 
-              style={{ 
-                minWidth: "180px", 
-                zIndex: 9999, 
-                fontSize: '0.9rem', 
-                paddingTop: '8px',
-                marginRight: '-18px !important' 
-              }}
-            >
-               <li style={{ marginTop: '12px' }}>
-                 <Link className="dropdown-item menu-item-green d-flex align-items-center gap-2 py-1 px-2 rounded" href="/profilo" onClick={() => setIsOpen(false)}>
-                   <svg className="icon icon-sm" style={{ width: 18, height: 18, fill: "currentColor" }} aria-hidden="true"><use href="/svg/sprites.svg#it-user"></use></svg>
-                   <span>Dati personali</span>
-                 </Link>
-               </li>
-               <li>
-                 <Link className="dropdown-item menu-item-green d-flex align-items-center gap-2 py-1 px-2 rounded" href="/profilo#mie-proposte" onClick={() => setIsOpen(false)}>
-                   <svg className="icon icon-sm" style={{ width: 18, height: 18, fill: "currentColor" }} aria-hidden="true"><use href="/svg/sprites.svg#it-file"></use></svg>
-                   <span>Le mie proposte</span>
-                 </Link>
-               </li>
-               <li>
-                 <Link className="dropdown-item menu-item-green d-flex align-items-center gap-2 py-1 px-2 rounded" href="/profilo#preferiti" onClick={() => setIsOpen(false)}>
-                   <svg className="icon icon-sm" style={{ width: 18, height: 18, fill: "currentColor" }} aria-hidden="true"><use href="/svg/custom.svg#heart"></use></svg>
-                   <span>Preferiti</span>
-                 </Link>
-               </li>
+             <ul
+              className="dropdown-menu show shadow border-0 mt-2 p-1 force-align-menu menu-animate"
+              style={{ minWidth: "180px", zIndex: 9999, fontSize: '0.9rem', paddingTop: '8px', marginRight: '-18px !important' }}
+             >
+                {profileLinks.map((link, index) => {
+                  const isProfilePage = pathname === "/profilo"
+                  const finalHref = isProfilePage ? link.hash : link.href
+                  const commonProps = {
+                    className: "dropdown-item menu-item-green d-flex align-items-center gap-2 py-1 px-2 rounded",
+                    onClick: () => setIsOpen(false),
+                  }
+
+                  const content = (
+                    <>
+                      <svg className="icon icon-sm" style={{ width: 18, height: 18, fill: "currentColor" }} aria-hidden="true">
+                        <use href={`/svg/${link.icon}`}></use>
+                      </svg>
+                      <span>{link.label}</span>
+                    </>
+                  )
+
+                  return (
+                    <li key={link.href} style={index === 0 ? { marginTop: '12px' } : {}}>
+                      {isProfilePage ? (
+                        <a href={finalHref} {...commonProps}>
+                          {content}
+                        </a>
+                      ) : (
+                        <Link href={finalHref} {...commonProps}>
+                          {content}
+                        </Link>
+                      )}
+                    </li>
+                  )
+                })}
                <li><hr className="dropdown-divider my-1" style={{ borderTop: '1px solid #e0e0e0', opacity: 1 }} /></li>
                <li>
-                 <a 
-                  href="#" 
-                  className="dropdown-item logout-item d-flex align-items-center gap-2 py-1 px-2 rounded mt-1" 
+                 <a
+                  href="#"
+                  className="dropdown-item logout-item d-flex align-items-center gap-2 py-1 px-2 rounded mt-1"
                   onClick={handleLogout}
                  >
                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="logout-icon" aria-hidden="true">

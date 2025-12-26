@@ -258,18 +258,10 @@ export interface AttachmentCreateInput {
   fileName?: string
 }
 
-export interface ProposalCreateInput {
-  title: string
-  description: string
-  categoryId: ID
-  additionalData?: Record<string, unknown>
-}
-
-export interface ProposalUpdateInput {
+export interface ProposalInput {
   title?: string
   description?: string
   categoryId?: ID
-  statusId?: ID
   additionalData?: Record<string, unknown>
 }
 

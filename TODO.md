@@ -74,8 +74,8 @@ nota: solo rimozione contenuto, niente form descrittivi
 - [x] RF2.1.1   Scartare proposta
 - [x] RF3.1     Gestione dei preferiti
 - [ ] RF1.5.3   Eliminazione del profilo
-- [ ] RF2.2     Salvataggio come bozza
-- [ ] RF2.5     Eliminazione proposta
+- [x] RF2.2     Salvataggio come bozza
+- [x] RF2.5     Eliminazione proposta
 - [ ] RF2.7     Visualizzazione proposte e sondaggi
 - [ ] Spec OpenAPI
 - [ ] Prepara app alla produzione

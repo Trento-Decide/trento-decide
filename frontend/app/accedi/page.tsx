@@ -7,7 +7,7 @@ import { ApiError } from "next/dist/server/api-utils"
 
 import { login } from "@/lib/api"
 
-export default function Accedi() {
+export default function LogIn() {
   const [error, setError] = useState<string | null>(null)
 
   const router = useRouter()

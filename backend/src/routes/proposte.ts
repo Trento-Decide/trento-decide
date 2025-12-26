@@ -1,116 +1,50 @@
 import express, { type Request, type Response } from "express"
+
 import { pool } from "../database.js"
 import { authenticateToken, conditionalAuthenticateToken } from "../middleware/authMiddleware.js"
 import {
-  validateAdditionalDataByCategoryId,
-  validateRequiredFilesByCategoryId,
+  validateProposalInput,
 } from "../services/validation.js"
-
+import { parseFilters, normalizeProposalInput } from "../utils/parse.js"
 import type {
   Proposal,
-  ProposalFilters,
   ProposalSearchItem,
-  ProposalUpdateInput,
+  ProposalInput,
   Attachment,
-  ID,
 } from "../../../shared/models.js"
 
 const router = express.Router()
 
-function parseBoolean(value: unknown): boolean | undefined {
-  if (value === undefined) return undefined
-  if (value === "true" || value === true) return true
-  if (value === "false" || value === false) return false
-  return undefined
-}
-
-function parseNumber(value: unknown): number | undefined {
-  if (value === undefined) return undefined
-  const n = Number(value)
-  return Number.isFinite(n) ? n : undefined
-}
-
-function parseDate(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined
-  return value
-}
-
-function parseFilters(q: Record<string, unknown>): ProposalFilters {
-  const filters: ProposalFilters = {}
-
-  if (typeof q.q === "string" && q.q.length > 0) filters.q = q.q
-  if (typeof q.authorUsername === "string") filters.authorUsername = q.authorUsername
-  if (typeof q.categoryCode === "string") filters.categoryCode = q.categoryCode
-  if (typeof q.statusCode === "string") filters.statusCode = q.statusCode
-
-  const titlesOnly = parseBoolean(q.titlesOnly)
-  if (titlesOnly !== undefined) filters.titlesOnly = titlesOnly
-
-  const favourites = parseBoolean(q.favourites)
-  if (favourites !== undefined) filters.favourites = favourites
-
-  const authorId = parseNumber(q.authorId)
-  if (authorId !== undefined) filters.authorId = authorId
-
-  const categoryId = parseNumber(q.categoryId)
-  if (categoryId !== undefined) filters.categoryId = categoryId
-
-  const statusId = parseNumber(q.statusId)
-  if (statusId !== undefined) filters.statusId = statusId
-
-  const minVotes = parseNumber(q.minVotes)
-  if (minVotes !== undefined) filters.minVotes = minVotes
-
-  const maxVotes = parseNumber(q.maxVotes)
-  if (maxVotes !== undefined) filters.maxVotes = maxVotes
-
-  const dateFrom = parseDate(q.dateFrom)
-  if (dateFrom !== undefined) filters.dateFrom = dateFrom
-
-  const dateTo = parseDate(q.dateTo)
-  if (dateTo !== undefined) filters.dateTo = dateTo
-
-  if (typeof q.sortBy === "string" && ["date", "votes", "title"].includes(q.sortBy)) {
-    filters.sortBy = q.sortBy as "date" | "votes" | "title"
-  }
-
-  if (typeof q.sortOrder === "string" && ["asc", "desc"].includes(q.sortOrder)) {
-    filters.sortOrder = q.sortOrder as "asc" | "desc"
-  }
-
-  return filters
-}
-
 router.post(
   "/bozza",
   authenticateToken,
-  async (req: Request<unknown, unknown, { categoryId: ID }>, res: Response) => {
+  async (req: Request<unknown, unknown, ProposalInput>, res: Response) => {
     try {
       const userId = Number(req.user!.sub)
-      const { categoryId } = req.body
+      const input: ProposalInput = req.body
 
-      if (!categoryId || !Number.isInteger(categoryId)) {
-        return res.status(400).json({ error: "Category ID required" })
-      }
+      normalizeProposalInput(input)
 
-      const categoryCheck = await pool.query(`SELECT 1 FROM categories WHERE id = $1`, [categoryId]);
-      if (categoryCheck.rowCount === 0) {
-        return res.status(400).json({ error: "Invalid Category ID" });
+      try {
+        await validateProposalInput(input, { context: 'draft' })
+      } catch (err) {
+        if (err instanceof Error) return res.status(400).json({ error: err.message })
+        throw err
       }
 
       const insertRes = await pool.query(
         `INSERT INTO proposals (
             title, description, category_id, author_id, status_id, additional_data, current_version, created_at, updated_at
           ) VALUES (
-            'Nuova Bozza', '', $1, $2,
+            $3, $4, $1, $2,
             (SELECT id FROM statuses WHERE code = 'bozza' LIMIT 1),
-            '{}'::jsonb, 1, NOW(), NOW()
+            $5::jsonb, 1, NOW(), NOW()
           )
           RETURNING id`,
-        [categoryId, userId],
+        [input.categoryId, userId, input.title, input.description ?? '', input.additionalData ?? {}],
       )
 
-      return res.status(201).json({ success: true, id: insertRes.rows[0].id })
+      return res.status(201).json({ id: insertRes.rows[0].id })
     } catch (err) {
       console.error(err)
       return res.status(500).json({ error: "Failed to create draft" })
@@ -121,16 +55,16 @@ router.post(
 router.patch(
   "/:id",
   authenticateToken,
-  async (req: Request<{ id: string }, unknown, ProposalUpdateInput>, res: Response) => {
+  async (req: Request<{ id: string }, unknown, ProposalInput>, res: Response) => {
     try {
       const proposalId = Number(req.params.id)
       const userId = Number(req.user!.sub)
-      const { title, description, additionalData } = req.body
+      const input: ProposalInput = req.body
 
       const check = await pool.query(
-        `SELECT p.author_id, p.category_id, s.code as status_code 
-         FROM proposals p 
-         JOIN statuses s ON p.status_id = s.id 
+        `SELECT p.author_id, p.category_id, s.code as status_code
+         FROM proposals p
+         JOIN statuses s ON p.status_id = s.id
          WHERE p.id = $1`,
         [proposalId],
       )
@@ -144,33 +78,32 @@ router.patch(
         return res.status(400).json({ error: "Cannot patch a published proposal. Use PUT to update." })
       }
 
-      if (additionalData) {
-        try {
-          await validateAdditionalDataByCategoryId(meta.category_id, additionalData)
-        } catch (err) {
-            if (err instanceof Error) {
-                return res.status(400).json({ error: `Invalid additional data: ${err.message}` });
-            }
-            throw err;
-        }
+      normalizeProposalInput(input)
+
+      try {
+        await validateProposalInput(input, { context: 'draft' })
+      } catch (err) {
+        if (err instanceof Error) return res.status(400).json({ error: err.message })
+        throw err
       }
 
       const fields: string[] = []
       const values: unknown[] = []
       let idx = 1
 
-      if (title !== undefined) { fields.push(`title = $${idx++}`); values.push(title); }
-      if (description !== undefined) { fields.push(`description = $${idx++}`); values.push(description); }
-      if (additionalData !== undefined) { fields.push(`additional_data = $${idx++}`); values.push(additionalData ?? {}); }
+      if (input.title !== undefined) { fields.push(`title = $${idx++}`); values.push(input.title) }
+      if (input.description !== undefined) { fields.push(`description = $${idx++}`); values.push(input.description) }
+      if (input.categoryId !== undefined) { fields.push(`category_id = $${idx++}`); values.push(input.categoryId) }
+      if (input.additionalData !== undefined) { fields.push(`additional_data = $${idx++}`); values.push(input.additionalData ?? {}) }
 
       if (fields.length === 0) return res.status(400).json({ error: "No fields provided" })
-      
+
       fields.push(`updated_at = NOW()`)
       values.push(proposalId)
 
       await pool.query(`UPDATE proposals SET ${fields.join(", ")} WHERE id = $${idx}`, values)
 
-      return res.json({ success: true, message: "Draft saved" })
+      return res.json({})
     } catch (err) {
       console.error(err)
       return res.status(500).json({ error: "Error saving draft" })
@@ -183,102 +116,109 @@ router.post(
   authenticateToken,
   async (req: Request<{ id: string }>, res: Response) => {
     try {
-        const proposalId = Number(req.params.id)
-        const userId = Number(req.user!.sub)
+      const proposalId = Number(req.params.id)
+      const userId = Number(req.user!.sub)
 
-        const propRes = await pool.query(
-          `SELECT p.*, s.code as status_code
+      const propRes = await pool.query(
+        `SELECT p.*, s.code as status_code
            FROM proposals p
            JOIN statuses s ON p.status_id = s.id
            WHERE p.id = $1`,
-          [proposalId]
-        )
-        if (propRes.rowCount === 0) return res.status(404).json({ error: "Not found" })
-        const proposal = propRes.rows[0]
-  
-        if (proposal.author_id !== userId) return res.status(403).json({ error: "Unauthorized" })
-  
-        if (proposal.status_code !== 'bozza') {
-          return res.status(400).json({ error: "Proposal is not a draft and cannot be published." });
-        }
+        [proposalId]
+      )
+      if (propRes.rowCount === 0) return res.status(404).json({ error: "Not found" })
+      const proposal = propRes.rows[0]
 
-        if (!proposal.title || proposal.title.length < 5) return res.status(400).json({ error: "Title invalid" })
-        await validateAdditionalDataByCategoryId(proposal.category_id, proposal.additional_data)
-        await validateRequiredFilesByCategoryId(proposal.category_id, proposalId)
-  
-        await pool.query(
-          `UPDATE proposals 
-           SET status_id = (SELECT id FROM statuses WHERE code = 'pubblicata' LIMIT 1),
-               created_at = NOW() 
-           WHERE id = $1`, 
-          [proposalId]
-        )
-  
-        return res.json({ success: true, message: "Published" })
-      } catch (err) {
-        console.error(err)
-        return res.status(500).json({ error: "Error publishing" })
+      if (proposal.author_id !== userId) return res.status(403).json({ error: "Unauthorized" })
+
+      if (proposal.status_code !== 'bozza') {
+        return res.status(400).json({ error: "Proposal is not a draft and cannot be published." })
       }
+
+      const input: ProposalInput = {
+        title: proposal.title,
+        description: proposal.description,
+        categoryId: proposal.category_id,
+        additionalData: proposal.additional_data ?? {},
+      }
+
+      try {
+        await validateProposalInput(input, { context: 'publish', proposalId })
+      } catch (err) {
+        if (err instanceof Error) return res.status(400).json({ error: err.message })
+        throw err
+      }
+
+
+      await pool.query(
+        `UPDATE proposals
+           SET status_id = (SELECT id FROM statuses WHERE code = 'pubblicata' LIMIT 1),
+               updated_at = NOW()
+           WHERE id = $1`,
+        [proposalId]
+      )
+
+      return res.json({})
+    } catch (err) {
+      console.error(err)
+      return res.status(500).json({ error: "Error publishing" })
+    }
   },
 )
 
 router.put(
   "/:id",
   authenticateToken,
-  async (req: Request<{ id: string }, unknown, ProposalUpdateInput>, res: Response) => {
+  async (req: Request<{ id: string }, unknown, ProposalInput>, res: Response) => {
     try {
       const proposalId = Number(req.params.id)
       const userId = Number(req.user!.sub)
-      const { title, description, additionalData } = req.body
+      const input: ProposalInput = req.body
 
       const check = await pool.query(
-        `SELECT p.author_id, p.category_id, s.code as status_code 
-         FROM proposals p 
-         JOIN statuses s ON p.status_id = s.id 
-         WHERE p.id = $1`, 
+        `SELECT p.author_id, p.category_id, s.code as status_code
+         FROM proposals p
+         JOIN statuses s ON p.status_id = s.id
+         WHERE p.id = $1`,
         [proposalId]
       )
       if (check.rowCount === 0) return res.status(404).json({ error: "Not found" })
       const current = check.rows[0]
 
       if (current.author_id !== userId) return res.status(403).json({ error: "Unauthorized" })
-      
+
       if (current.status_code === 'bozza') {
         return res.status(400).json({ error: "Proposal is a draft. Use PATCH to save or POST /pubblica to publish." })
       }
 
-      if (!title || title.length < 5) return res.status(400).json({ error: "Title too short" })
-      if (!description || description.length < 10) return res.status(400).json({ error: "Description too short" })
-      
-      if (additionalData) {
-        await validateAdditionalDataByCategoryId(current.category_id, additionalData)
+      normalizeProposalInput(input)
+
+      try {
+        await validateProposalInput(input, { context: 'update', proposalId })
+      } catch (err) {
+        if (err instanceof Error) return res.status(400).json({ error: err.message })
+        throw err
       }
 
       const fields: string[] = []
       const values: unknown[] = []
       let idx = 1
 
-      fields.push(`title = $${idx++}`); values.push(title);
-      fields.push(`description = $${idx++}`); values.push(description);
-      
-      if (additionalData) {
-        fields.push(`additional_data = $${idx++}`); values.push(additionalData);
-      }
+      fields.push(`title = $${idx++}`); values.push(input.title)
+      fields.push(`description = $${idx++}`); values.push(input.description)
+      fields.push(`category_id = $${idx++}`); values.push(input.categoryId)
+      fields.push(`additional_data = $${idx++}`); values.push(input.additionalData ?? {})
 
       fields.push(`current_version = current_version + 1`)
       fields.push(`vote_value = 0`)
       fields.push(`updated_at = NOW()`)
-      
+
       values.push(proposalId)
 
       const query = `UPDATE proposals SET ${fields.join(", ")} WHERE id = $${idx}`
       await pool.query(query, values)
 
-      return res.json({ 
-        success: true, 
-        message: "Proposal updated successfully. Votes have been reset.",
-        versionIncremented: true 
-      })
+      return res.json({})
 
     } catch (err) {
       console.error("Update published error:", err)
@@ -292,7 +232,7 @@ router.get(
   conditionalAuthenticateToken,
   async (
     req: Request<unknown, unknown, unknown, Record<string, unknown>>,
-    res: Response<{ data: ProposalSearchItem[] } | { error: string }>,
+    res: Response<ProposalSearchItem[] | { error: string }>,
   ) => {
     try {
       const userId = req.user ? Number(req.user.sub) : undefined
@@ -308,17 +248,7 @@ router.get(
       if (!filters.statusId && !filters.statusCode) {
         const searchingSelf = userId && filters.authorId === userId
         if (!searchingSelf) {
-             conditions.push(`s.code != 'bozza'`)
-        }
-      }
-
-      let selectIsFavourited = "false AS is_favourited"
-      if (userId) {
-        const idxUser = values.push(userId)
-        const favExists = `EXISTS(SELECT 1 FROM favourites f WHERE f.proposal_id = p.id AND f.user_id = $${idxUser})`
-        selectIsFavourited = `${favExists} AS is_favourited`
-        if (filters.favourites === true) {
-          conditions.push(favExists)
+          conditions.push(`s.code != 'bozza'`)
         }
       }
 
@@ -372,6 +302,16 @@ router.get(
         conditions.push(`p.created_at <= $${idx}::timestamptz`)
       }
 
+      let selectIsFavourited = "false AS is_favourited"
+      if (userId) {
+        const idxUser = values.push(userId)
+        const favExists = `EXISTS(SELECT 1 FROM favourites f WHERE f.proposal_id = p.id AND f.user_id = $${idxUser})`
+        selectIsFavourited = `${favExists} AS is_favourited`
+        if (filters.favourites === true) {
+          conditions.push(favExists)
+        }
+      }
+
       const whereClause = conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : ""
 
       let orderByClause = "ORDER BY p.created_at DESC"
@@ -402,41 +342,41 @@ router.get(
       const result = await pool.query(query, values)
 
       interface ProposalRow {
-        id: number;
-        title: string;
-        description: string;
-        author_name: string;
-        category_name: string | null;
-        category_code: string;
-        category_colour: string | null;
-        status_name: string | null;
-        status_code: string;
-        status_colour: string | null;
-        vote_value: number;
-        created_at: Date;
-        is_favourited: boolean;
+        id: number
+        title: string
+        description: string
+        author_name: string
+        category_name: string | null
+        category_code: string
+        category_colour: string | null
+        status_name: string | null
+        status_code: string
+        status_colour: string | null
+        vote_value: number
+        created_at: Date
+        is_favourited: boolean
       }
 
       const items: ProposalSearchItem[] = result.rows.map((row) => {
-        const r = row as ProposalRow;
+        const r = row as ProposalRow
         return {
-            type: "proposta",
-            id: r.id,
-            title: r.title,
-            description: r.description,
-            voteValue: Number(r.vote_value),
-            date: new Date(r.created_at).toLocaleDateString("it-IT"),
-            timestamp: new Date(r.created_at).toISOString(),
-            isFavourited: Boolean(r.is_favourited),
-            ...(r.author_name ? { author: r.author_name } : {}),
-            category: r.category_name ?? r.category_code,
-            ...(r.category_colour ? { categoryColour: r.category_colour } : {}),
-            status: r.status_name ?? r.status_code,
-            ...(r.status_colour ? { statusColour: r.status_colour } : {}),
-        };
+          type: "proposta",
+          id: r.id,
+          title: r.title,
+          description: r.description,
+          voteValue: Number(r.vote_value),
+          date: new Date(r.created_at).toLocaleDateString("it-IT"),
+          timestamp: new Date(r.created_at).toISOString(),
+          isFavourited: Boolean(r.is_favourited),
+          ...(r.author_name ? { author: r.author_name } : {}),
+          category: r.category_name ?? r.category_code,
+          ...(r.category_colour ? { categoryColour: r.category_colour } : {}),
+          status: r.status_name ?? r.status_code,
+          ...(r.status_colour ? { statusColour: r.status_colour } : {}),
+        }
       })
 
-      return res.json({ data: items })
+      return res.json(items)
     } catch (err) {
       console.error(err)
       return res.status(500).json({ error: "Failed to fetch proposals" })
@@ -447,7 +387,7 @@ router.get(
 router.get(
   "/:id",
   conditionalAuthenticateToken,
-  async (req: Request<{ id: string }>, res: Response<{ data: Proposal } | { error: string }>) => {
+  async (req: Request<{ id: string }>, res: Response<Proposal | { error:string }>) => {
     try {
       const id = Number(req.params.id)
       const userId = req.user ? Number(req.user.sub) : undefined
@@ -455,7 +395,7 @@ router.get(
       if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid ID" })
 
       const result = await pool.query(
-        `SELECT 
+        `SELECT
             p.*,
             c.code AS category_code, c.labels ->> 'it' AS category_name, c.colour AS category_colour,
             s.code AS status_code, s.labels ->> 'it' AS status_name, s.colour AS status_colour,
@@ -481,29 +421,33 @@ router.get(
 
       const r = result.rows[0]
 
-      interface RawAttachment {
-        id: number;
-        proposalId: number;
-        fileUrl: string;
-        fileType?: string;
-        fileName?: string;
-        uploadedAt: string;
-        slotKey?: string;
+      if (r.status_code === "bozza" && r.author_id !== userId) {
+        return res.status(404).json({ error: "Not found" })
       }
 
-      const attachmentsRaw = (Array.isArray(r.attachments) ? r.attachments : []) as RawAttachment[];
-      
+      interface RawAttachment {
+        id: number
+        proposalId: number
+        fileUrl: string
+        fileType?: string
+        fileName?: string
+        uploadedAt: string
+        slotKey?: string
+      }
+
+      const attachmentsRaw = (Array.isArray(r.attachments) ? r.attachments : []) as RawAttachment[]
+
       const attachments: Attachment[] = attachmentsRaw
-          .filter(Boolean)
-          .map((a) => ({
-            id: a.id,
-            proposalId: a.proposalId,
-            fileUrl: a.fileUrl,
-            uploadedAt: new Date(a.uploadedAt).toISOString(),
-            ...(a.fileType ? { fileType: a.fileType } : {}),
-            ...(a.fileName ? { fileName: a.fileName } : {}),
-            ...(a.slotKey ? { slotKey: a.slotKey } : {}),
-          }))
+        .filter(Boolean)
+        .map((a) => ({
+          id: a.id,
+          proposalId: a.proposalId,
+          fileUrl: a.fileUrl,
+          uploadedAt: new Date(a.uploadedAt).toISOString(),
+          ...(a.fileType ? { fileType: a.fileType } : {}),
+          ...(a.fileName ? { fileName: a.fileName } : {}),
+          ...(a.slotKey ? { slotKey: a.slotKey } : {}),
+        }))
 
       const proposal: Proposal = {
         id: r.id,
@@ -516,22 +460,22 @@ router.get(
         createdAt: new Date(r.created_at).toISOString(),
         updatedAt: new Date(r.updated_at).toISOString(),
         isFavourited: Boolean(r.is_favourited),
-        category: { 
-            id: r.category_id, 
-            code: r.category_code, 
-            ...(r.category_name ? { label: r.category_name } : {}),
-            ...(r.category_colour ? { colour: r.category_colour } : {})
+        category: {
+          id: r.category_id,
+          code: r.category_code,
+          ...(r.category_name ? { label: r.category_name } : {}),
+          ...(r.category_colour ? { colour: r.category_colour } : {})
         },
-        status: { 
-            id: r.status_id, 
-            code: r.status_code, 
-            ...(r.status_name ? { label: r.status_name } : {}),
-            ...(r.status_colour ? { colour: r.status_colour } : {})
+        status: {
+          id: r.status_id,
+          code: r.status_code,
+          ...(r.status_name ? { label: r.status_name } : {}),
+          ...(r.status_colour ? { colour: r.status_colour } : {})
         },
         ...(attachments.length > 0 ? { attachments } : {})
       }
 
-      return res.json({ data: proposal })
+      return res.json(proposal)
     } catch (err) {
       console.error(err)
       return res.status(500).json({ error: "Failed to fetch proposal" })
@@ -542,7 +486,7 @@ router.get(
 router.delete(
   "/:id",
   authenticateToken,
-  async (req: Request<{ id: string }>, res: Response<{ success: boolean; message: string } | { error: string }>) => {
+  async (req: Request<{ id: string }>, res: Response<void | { error: string }>) => {
     try {
       const id = Number(req.params.id)
       const userId = Number(req.user!.sub)
@@ -554,7 +498,7 @@ router.delete(
 
       await pool.query(`DELETE FROM proposals WHERE id = $1`, [id])
 
-      return res.json({ success: true, message: "Deleted" })
+      return res.sendStatus(204)
     } catch (err) {
       console.error(err)
       return res.status(500).json({ error: "Delete failed" })
@@ -565,7 +509,8 @@ router.delete(
 router.post(
   "/:id/vota",
   authenticateToken,
-  async (req: Request<{ id: string }, unknown, { vote?: number }>, res: Response<{ data: { vote: number; totalVotes: number } } | { error: string }>) => {
+  async (req: Request<{ id: string }, unknown, { vote?: number }>, res: Response<{ vote: number; totalVotes: number } | { error: string }>) => {
+    const client = await pool.connect()
     try {
       const userId = Number(req.user!.sub)
       const proposalId = Number(req.params.id)
@@ -573,30 +518,41 @@ router.post(
 
       if (vote !== 1 && vote !== -1) return res.status(400).json({ error: "Invalid vote" })
 
-      const exists = await pool.query("SELECT 1 FROM proposals WHERE id=$1", [proposalId])
-      if (exists.rowCount === 0) return res.status(404).json({ error: "Not found" })
+      await client.query("BEGIN")
 
-      await pool.query(
+      const exists = await client.query("SELECT current_version FROM proposals WHERE id=$1 FOR UPDATE", [proposalId])
+      if (exists.rowCount === 0) {
+        await client.query("ROLLBACK")
+        return res.status(404).json({ error: "Not found" })
+      }
+      const currentVersion = exists.rows[0].current_version
+
+      await client.query(
         `INSERT INTO proposal_votes (user_id, proposal_id, proposal_version, vote_value)
-         VALUES ($1, $2, (SELECT current_version FROM proposals WHERE id = $2), $3)
+         VALUES ($1, $2, $3, $4)
          ON CONFLICT (user_id, proposal_id, proposal_version)
          DO UPDATE SET vote_value = EXCLUDED.vote_value, created_at = NOW()`,
-        [userId, proposalId, vote],
+        [userId, proposalId, currentVersion, vote],
       )
 
-      const sumRes = await pool.query(
+      const sumRes = await client.query(
         `SELECT COALESCE(SUM(vote_value), 0) AS total FROM proposal_votes
-         WHERE proposal_id = $1 AND proposal_version = (SELECT current_version FROM proposals WHERE id = $1)`,
-        [proposalId],
+         WHERE proposal_id = $1 AND proposal_version = $2`,
+        [proposalId, currentVersion],
       )
       const total = Number(sumRes.rows[0].total)
 
-      await pool.query("UPDATE proposals SET vote_value = $1 WHERE id = $2", [total, proposalId])
+      await client.query("UPDATE proposals SET vote_value = $1 WHERE id = $2", [total, proposalId])
 
-      return res.json({ data: { vote, totalVotes: total } })
+      await client.query("COMMIT")
+
+      return res.json({ vote, totalVotes: total })
     } catch (err) {
+      await client.query("ROLLBACK")
       console.error(err)
       return res.status(500).json({ error: "Vote failed" })
+    } finally {
+      client.release()
     }
   },
 )
@@ -604,30 +560,44 @@ router.post(
 router.delete(
   "/:id/vota",
   authenticateToken,
-  async (req: Request<{ id: string }>, res: Response<{ success: boolean; totalVotes: number } | { error: string }>) => {
+  async (req: Request<{ id: string }>, res: Response<{ totalVotes: number } | { error: string }>) => {
+    const client = await pool.connect()
     try {
       const userId = Number(req.user!.sub)
       const proposalId = Number(req.params.id)
 
-      await pool.query(
+      await client.query("BEGIN")
+
+      const exists = await client.query("SELECT current_version FROM proposals WHERE id=$1 FOR UPDATE", [proposalId])
+      if (exists.rowCount === 0) {
+        await client.query("ROLLBACK")
+        return res.status(404).json({ error: "Not found" })
+      }
+      const currentVersion = exists.rows[0].current_version
+
+      await client.query(
         `DELETE FROM proposal_votes
-         WHERE user_id = $1 AND proposal_id = $2
-         AND proposal_version = (SELECT current_version FROM proposals WHERE id = $2)`,
-        [userId, proposalId],
+         WHERE user_id = $1 AND proposal_id = $2 AND proposal_version = $3`,
+        [userId, proposalId, currentVersion],
       )
 
-      const sumRes = await pool.query(
+      const sumRes = await client.query(
         `SELECT COALESCE(SUM(vote_value), 0) AS total FROM proposal_votes
-         WHERE proposal_id = $1 AND proposal_version = (SELECT current_version FROM proposals WHERE id = $1)`,
-        [proposalId],
+         WHERE proposal_id = $1 AND proposal_version = $2`,
+        [proposalId, currentVersion],
       )
       const total = Number(sumRes.rows[0].total)
-      await pool.query("UPDATE proposals SET vote_value = $1 WHERE id = $2", [total, proposalId])
+      await client.query("UPDATE proposals SET vote_value = $1 WHERE id = $2", [total, proposalId])
 
-      return res.json({ success: true, totalVotes: total })
+      await client.query("COMMIT")
+
+      return res.json({ totalVotes: total })
     } catch (err) {
+      await client.query("ROLLBACK")
       console.error(err)
       return res.status(500).json({ error: "Vote removal failed" })
+    } finally {
+      client.release()
     }
   },
 )
@@ -635,7 +605,7 @@ router.delete(
 router.get(
   "/:id/vota",
   authenticateToken,
-  async (req: Request<{ id: string }>, res: Response<{ data: { voteValue: -1 | 1 } | null } | { error: string }>) => {
+  async (req: Request<{ id: string }>, res: Response<{ vote: -1 | 1 | null } | { error: string }>) => {
     try {
       const userId = Number(req.user!.sub)
       const proposalId = Number(req.params.id)
@@ -646,10 +616,11 @@ router.get(
         [userId, proposalId],
       )
 
-      const voteData = (resVote.rowCount ?? 0) > 0 
-        ? { voteValue: resVote.rows[0].vote_value as -1 | 1 } 
+      const voteData = (resVote.rowCount ?? 0) > 0
+        ? { voteValue: resVote.rows[0].vote_value as -1 | 1 }
         : null
-      return res.json({ data: voteData })
+      const vote = voteData ? voteData.voteValue : null
+      return res.json({ vote })
     } catch (err) {
       console.error(err)
       return res.status(500).json({ error: "Error fetching vote" })
@@ -660,13 +631,16 @@ router.get(
 router.post(
   "/:id/preferisco",
   authenticateToken,
-  async (req: Request<{ id: string }>, res: Response<{ data: { isFavourited: boolean } } | { error: string }>) => {
+  async (req: Request<{ id: string }>, res: Response<{ isFavourited: boolean } | { error: string }>) => {
     try {
       const userId = Number(req.user!.sub)
       const proposalId = Number(req.params.id)
 
+      const exists = await pool.query("SELECT 1 FROM proposals WHERE id=$1", [proposalId])
+      if (exists.rowCount === 0) return res.status(404).json({ error: "Not found" })
+
       await pool.query(`INSERT INTO favourites (user_id, proposal_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [userId, proposalId])
-      return res.json({ data: { isFavourited: true } })
+      return res.json({ isFavourited: true })
     } catch (err) {
       console.error(err)
       return res.status(500).json({ error: "Error adding favourite" })
@@ -677,16 +651,37 @@ router.post(
 router.delete(
   "/:id/preferisco",
   authenticateToken,
-  async (req: Request<{ id: string }>, res: Response<{ success: boolean } | { error: string }>) => {
+  async (req: Request<{ id: string }>, res: Response<{ isFavourited: boolean } | { error: string }>) => {
     try {
       const userId = Number(req.user!.sub)
       const proposalId = Number(req.params.id)
 
       await pool.query(`DELETE FROM favourites WHERE user_id=$1 AND proposal_id=$2`, [userId, proposalId])
-      return res.json({ success: true })
+      return res.json({ isFavourited: false })
     } catch (err) {
       console.error(err)
       return res.status(500).json({ error: "Error removing favourite" })
+    }
+  },
+)
+
+router.get(
+  "/:id/preferisco",
+  conditionalAuthenticateToken,
+  async (req: Request<{ id: string }>, res: Response<{ isFavourited: boolean } | { error: string }>) => {
+    try {
+      const id = Number(req.params.id)
+      const userId = req.user ? Number(req.user.sub) : null
+
+      if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid ID" })
+
+      if (!userId) return res.json({ isFavourited: false })
+
+      const r = await pool.query(`SELECT 1 FROM favourites WHERE proposal_id = $1 AND user_id = $2`, [id, userId])
+      return res.json({ isFavourited: Boolean(r.rowCount) })
+    } catch (err) {
+      console.error(err)
+      return res.status(500).json({ error: "Error fetching favourite" })
     }
   },
 )

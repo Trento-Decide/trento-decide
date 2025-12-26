@@ -4,21 +4,21 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ApiError } from "next/dist/server/api-utils"
 
-import Breadcrumb from "@/app/components/Breadcrumb"
-import PropostaCard from "@/app/components/PropostaCard"
 import { getProposals } from "@/lib/api"
+import Breadcrumb from "@/app/components/Breadcrumb"
+import ProposalCard from "@/app/components/ProposalCard"
 import { ProposalSearchItem } from "../../../shared/models"
 
-export default function ProposteList() {
+export default function ProposalList() {
   const [proposals, setProposals] = useState<ProposalSearchItem[]>([])
-  
+
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchProposals = async () => {
       try {
         const res = await getProposals()
-        setProposals(res.data)
+        setProposals(res)
       } catch (err: unknown) {
         if (err instanceof ApiError) {
           setError(err.message)
@@ -43,7 +43,7 @@ export default function ProposteList() {
 
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="fw-bold">Proposte</h1>
-        <Link href="/proposte/crea" className="btn btn-primary">
+        <Link href="/proposte/editor" className="btn btn-primary">
           Nuova Proposta
         </Link>
       </div>
@@ -51,7 +51,7 @@ export default function ProposteList() {
       <div className="row">
         <div className="col-12">
           {proposals.map(proposal => (
-            <PropostaCard key={proposal.id} proposal={proposal} />
+            <ProposalCard key={proposal.id} proposal={proposal} />
           ))}
         </div>
       </div>

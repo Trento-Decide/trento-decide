@@ -3,16 +3,16 @@
 import { useState, useEffect } from "react"
 import { ApiError } from "next/dist/server/api-utils"
 
-import PropostaCard from "@/app/components/PropostaCard"
+import ProposalCard from "@/app/components/ProposalCard"
 import { getProposals } from "@/lib/api"
 import { getUserData } from "@/lib/local"
 import type { User, ProposalSearchItem } from "../../../shared/models"
 
-export default function Profilo() {
+export default function Profile() {
   const [userData, setUserData] = useState<User | null>()
   const [myProposals, setMyProposals] = useState<ProposalSearchItem[]>([])
   const [favoriteProposals, setFavoriteProposals] = useState<ProposalSearchItem[]>([])
-  
+
   const [activeTab, setActiveTab] = useState<string>("dati")
 
   const [error, setError] = useState<string | null>(null)
@@ -28,10 +28,10 @@ export default function Profilo() {
         }
 
         const props = await getProposals({ authorId: stored.id })
-        setMyProposals(props.data)
+        setMyProposals(props)
 
         const favs = await getProposals({ favourites: true })
-        setFavoriteProposals(favs.data)
+        setFavoriteProposals(favs)
       } catch (err: unknown) {
         if (err instanceof ApiError) {
           setError(err.message)
@@ -43,11 +43,22 @@ export default function Profilo() {
   }, [])
 
   useEffect(() => {
-    const hash = window.location.hash.replace("#", "")
-    const validTabs = ["dati", "mie-proposte", "preferiti"]
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "")
+      const validTabs = ["dati", "mie-proposte", "preferiti"]
+      if (validTabs.includes(hash)) {
+        setActiveTab(hash)
+      } else {
+        // an empty hash, #, or an invalid one should default to the first tab
+        setActiveTab("dati")
+      }
+    }
 
-    if (validTabs.includes(hash)) {
-      setActiveTab(hash)
+    handleHashChange() // set tab on initial load
+
+    window.addEventListener("hashchange", handleHashChange)
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange)
     }
   }, [])
 
@@ -171,7 +182,7 @@ export default function Profilo() {
           <div className="row">
             <div className="col-12">
               {myProposals.map(proposal => (
-                <PropostaCard key={proposal.id} proposal={proposal} />
+                <ProposalCard key={proposal.id} proposal={proposal} />
               ))}
               {myProposals.length === 0 && <p className="text-muted">Non hai ancora creato nessuna proposta.</p>}
             </div>
@@ -186,7 +197,7 @@ export default function Profilo() {
           <div className="row">
             <div className="col-12">
               {favoriteProposals.map(proposal => (
-                <PropostaCard key={proposal.id} proposal={proposal} />
+                <ProposalCard key={proposal.id} proposal={proposal} />
               ))}
               {favoriteProposals.length === 0 && <p className="text-muted">Non hai ancora aggiunto nessuna proposta ai preferiti.</p>}
             </div>

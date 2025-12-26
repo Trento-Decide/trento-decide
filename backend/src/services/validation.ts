@@ -1,26 +1,7 @@
-import { pool } from "../database.js"
 import { z } from "zod"
 
-export type LocalizedText = Record<string, string>
-
-type BaseField = {
-  kind: "text" | "number" | "boolean" | "select" | "multiselect" | "date" | "map" | "file"
-  key: string
-  label: LocalizedText
-  required?: boolean | undefined
-  helpText?: LocalizedText | undefined
-}
-
-type TextField = BaseField & { kind: "text"; minLength?: number | undefined; maxLength?: number | undefined; pattern?: string | undefined }
-type NumberField = BaseField & { kind: "number"; min?: number | undefined; max?: number | undefined; step?: number | undefined; unit?: string | undefined }
-type BooleanField = BaseField & { kind: "boolean" }
-type SelectField = BaseField & { kind: "select"; options: Array<{ value: string; label: LocalizedText }> }
-type MultiSelectField = BaseField & { kind: "multiselect"; options: Array<{ value: string; label: LocalizedText }> }
-type DateField = BaseField & { kind: "date"; min?: string | undefined; max?: string | undefined }
-type MapField = BaseField & { kind: "map"; geoSchema?: unknown | undefined }
-type FileField = BaseField & { kind: "file"; accept?: string[] | undefined; multiple?: boolean | undefined; maxFiles?: number | undefined; maxSizeMB?: number | undefined }
-
-type FormField = TextField | NumberField | BooleanField | SelectField | MultiSelectField | DateField | MapField | FileField
+import { pool } from "../database.js"
+import type { FormField, ProposalInput } from "../../../shared/models.js"
 
 const localizedText = z.record(z.string(), z.string())
 const baseField = z.object({
@@ -52,10 +33,10 @@ export async function loadFormSchemaByCategoryId(categoryId: number): Promise<Fo
 
 export function buildAdditionalDataSchema(fields: FormField[]) {
   const shape: Record<string, z.ZodTypeAny> = {}
-  
+
   for (const f of fields) {
     const required = f.required === true
-    if (f.kind === "file") continue 
+    if (f.kind === "file") continue
 
     let fieldSchema: z.ZodTypeAny
 
@@ -81,14 +62,14 @@ export function buildAdditionalDataSchema(fields: FormField[]) {
       }
       case "select": {
         const values = f.options.map(o => o.value)
-        fieldSchema = values.length > 0 
-            ? z.enum(values as [string, ...string[]]) 
+        fieldSchema = values.length > 0
+            ? z.enum(values as [string, ...string[]])
             : z.string()
         break
       }
       case "multiselect": {
         const values = f.options.map(o => o.value)
-        fieldSchema = values.length > 0 
+        fieldSchema = values.length > 0
             ? z.array(z.enum(values as [string, ...string[]]))
             : z.array(z.string())
         break
@@ -105,20 +86,20 @@ export function buildAdditionalDataSchema(fields: FormField[]) {
         fieldSchema = z.unknown()
       }
     }
-    
+
     shape[f.key] = required ? fieldSchema : fieldSchema.optional()
   }
-  
+
   return z.object(shape).strict()
 }
 
-export async function validateAdditionalDataByCategoryId(categoryId: number, additionalData: unknown) {
+async function validateAdditionalDataByCategoryId(categoryId: number, additionalData: unknown) {
   const fields = await loadFormSchemaByCategoryId(categoryId)
   const zodSchema = buildAdditionalDataSchema(fields)
   return zodSchema.parse(additionalData ?? {})
 }
 
-export async function validateRequiredFilesByCategoryId(categoryId: number, proposalId: number) {
+async function validateRequiredFilesByCategoryId(categoryId: number, proposalId: number) {
   const fields = await loadFormSchemaByCategoryId(categoryId)
   const requiredSlots = fields.filter(f => f.kind === "file" && f.required).map(f => f.key)
   if (requiredSlots.length === 0) return
@@ -138,4 +119,55 @@ export async function validateRequiredFilesByCategoryId(categoryId: number, prop
     ;(err as Error & { details: { missing: string[] } }).details = { missing }
     throw err
   }
+}
+
+export async function validateProposalInput(
+  input: ProposalInput,
+  options?: { context?: 'draft' | 'update' | 'publish'; proposalId?: number }
+) {
+  const ctx = options?.context ?? 'draft'
+
+  const { title, description, additionalData, categoryId } = input
+
+  if (title !== undefined && typeof title !== 'string') {
+    throw new Error('Title must be a string')
+  }
+
+  if (description !== undefined && typeof description !== 'string') {
+    throw new Error('Description must be a string')
+  }
+
+  if (ctx === 'draft') {
+    if (!title) {
+      throw new Error('Title required')
+    }
+  }
+
+  if (ctx === 'update' || ctx === 'publish') {
+    if (categoryId === undefined) {
+      throw new Error('Category ID required')
+    }
+    if (!title || (typeof title === 'string' && title.length < 5)) {
+      throw new Error('Title too short')
+    }
+    if (!description || (typeof description === 'string' && description.length < 10)) {
+      throw new Error('Description too short')
+    }
+    if (additionalData === undefined) {
+      throw new Error('Additional data required')
+    }
+  }
+
+  if (additionalData !== undefined && categoryId !== undefined) {
+    await validateAdditionalDataByCategoryId(categoryId, additionalData)
+  }
+
+  if (ctx === 'publish' && options?.proposalId !== undefined) {
+    if (categoryId === undefined) {
+      throw new Error('Category ID required')
+    }
+    await validateRequiredFilesByCategoryId(categoryId, options.proposalId)
+  }
+
+  return true
 }

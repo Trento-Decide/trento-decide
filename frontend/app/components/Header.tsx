@@ -3,26 +3,38 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+
+import { theme } from "@/lib/theme"
 import UserMenu from "@/app/components/UserMenu"
 import SearchBox from "@/app/components/SearchBox"
-import { theme } from "@/lib/theme"
 
 const NAV_LINKS = [
   { href: "/popolari", label: "Popolari", bold: true },
   { href: "/novita", label: "Novità" },
   { href: "/proposte", label: "Proposte" },
-  { href: "/proposte/nuova", label: "Crea proposta" },
+  { href: "/proposte/editor", label: "Crea proposta" },
   { href: "/regolamento", label: "Regolamento" },
 ]
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [mobileSearch, setMobileSearch] = useState("")
-  
+
   const pathname = usePathname()
   const router = useRouter()
 
-  const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`)
+  const isActive = (href: string) => {
+    if (!pathname) return false
+    if (pathname === href) return true
+    if (!pathname.startsWith(`${href}/`)) return false
+
+    // If the next path segment corresponds to another top-level nav link (e.g. "/proposte/editor"),
+    // prefer that child link and don't mark the parent as active.
+    const nextSegment = pathname.slice(href.length + 1).split("/")[0]
+    if (NAV_LINKS.some((l) => l.href === `${href}/${nextSegment}`)) return false
+
+    return true
+  }
 
   const handleMobileSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,25 +47,26 @@ export default function Header() {
     <header className="shadow-none" style={{ backgroundColor: theme.primary, position: 'relative' }}>
       <style jsx>{`
         :global(.nav-link-minimal) {
-          text-decoration: none !important; 
+          text-decoration: none !important;
           color: ${theme.text.light} !important;
-          padding: 5px 0; 
-          margin: 0; 
-          font-weight: 500; 
-          font-size: 0.95rem; 
-          border-bottom: 2px solid transparent; 
+          padding: 5px 0;
+          margin: 0;
+          font-weight: 500;
+          font-size: 0.95rem;
+          border-bottom: 2px solid transparent;
           transition: all 0.2s ease-in-out;
         }
-        
-        :global(.nav-link-minimal:hover),
-        :global(.nav-link-minimal.active) { 
-          text-decoration: underline !important; 
-          text-underline-offset: 4px; 
+
+        /* Use border-bottom as the single visual underline to avoid double lines */
+        :global(.nav-link-minimal:hover) {
           color: ${theme.text.light} !important;
+          border-bottom-color: ${theme.text.light};
         }
-        
-        :global(.nav-link-minimal.active) { 
-          font-weight: 700; 
+
+        :global(.nav-link-minimal.active) {
+          color: ${theme.text.light} !important;
+          font-weight: 700;
+          border-bottom-color: ${theme.text.light};
         }
 
         .hamburger-lines line { stroke: #e0e0e0; stroke-width: 1.5; }
@@ -71,10 +84,10 @@ export default function Header() {
       <div className="d-none d-lg-block text-white border-bottom border-white border-opacity-10" style={{ backgroundColor: theme.dark, fontSize: '0.85rem' }}>
         <div className="container">
           <div className="d-flex justify-content-between align-items-center py-2">
-            <a 
-              className="text-white text-decoration-none nav-link-minimal" 
-              href="https://www.comune.trento.it/" 
-              target="_blank" 
+            <a
+              className="text-white text-decoration-none nav-link-minimal"
+              href="https://www.comune.trento.it/"
+              target="_blank"
               rel="noopener noreferrer"
               aria-label="Vai al sito del Comune di Trento (apre una nuova finestra)"
             >
@@ -116,11 +129,11 @@ export default function Header() {
               <span className="fw-semibold fs-4 lh-1">Trento Decide</span>
             </Link>
           </div>
-          
+
           <div className="d-none d-lg-flex col-lg-8 justify-content-end">
             <SearchBox />
           </div>
-          
+
           <div className="col-4 d-lg-none d-flex justify-content-end">
             <UserMenu mobileMode={true} />
           </div>
@@ -131,9 +144,9 @@ export default function Header() {
         <div className="container">
           <nav className="d-flex align-items-center py-1 gap-4" aria-label="Navigazione principale">
             {NAV_LINKS.map((link) => (
-              <Link 
-                key={link.href} 
-                href={link.href} 
+              <Link
+                key={link.href}
+                href={link.href}
                 className={`nav-link-minimal ${isActive(link.href) ? "active" : ""} ${link.bold ? "fw-bold" : ""}`}
                 aria-current={isActive(link.href) ? "page" : undefined}
               >
@@ -148,12 +161,12 @@ export default function Header() {
         <div className="bg-white shadow-lg p-3 border-top">
           <form onSubmit={handleMobileSearchSubmit} className="mb-3 mobile-search-wrapper" role="search">
             <svg className="mobile-search-icon" aria-hidden="true"><use href="/svg/sprites.svg#it-search"></use></svg>
-            <input 
-              type="search" 
-              className="mobile-search-input" 
-              placeholder="Cerca..." 
-              value={mobileSearch} 
-              onChange={(e)=>setMobileSearch(e.target.value)} 
+            <input
+              type="search"
+              className="mobile-search-input"
+              placeholder="Cerca..."
+              value={mobileSearch}
+              onChange={(e)=>setMobileSearch(e.target.value)}
               aria-label="Cerca nel sito"
             />
           </form>
@@ -162,9 +175,9 @@ export default function Header() {
           <ul className="list-unstyled m-0">
             {NAV_LINKS.map((link) => (
               <li key={link.href} className="mb-1">
-                <Link 
-                  href={link.href} 
-                  className={`d-flex align-items-center gap-2 p-2 rounded text-decoration-none ${isActive(link.href) ? 'bg-light fw-bold text-success' : 'text-dark'} ${link.bold ? "fw-bold" : ""}`} 
+                <Link
+                  href={link.href}
+                  className={`d-flex align-items-center gap-2 p-2 rounded text-decoration-none ${isActive(link.href) ? 'bg-light fw-bold text-success' : 'text-dark'} ${link.bold ? "fw-bold" : ""}`}
                   onClick={() => setIsMenuOpen(false)}
                   aria-current={isActive(link.href) ? "page" : undefined}
                 >
