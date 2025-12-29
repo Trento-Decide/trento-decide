@@ -87,7 +87,7 @@ export default function GuidePage() {
             </div>
             
             <p className="mb-4">
-              Hai un'idea per migliorare il quartiere? Puoi inviarla all'amministrazione seguendo questi passaggi.
+              Hai un&apos;idea per migliorare il quartiere? Puoi inviarla all&apos;amministrazione seguendo questi passaggi.
               Ogni proposta segue un ciclo di vita specifico:
             </p>
 
@@ -112,7 +112,7 @@ export default function GuidePage() {
                 <div className="card h-100 border-0 bg-light">
                   <div className="card-body">
                     <h5 className="h6 fw-bold text-warning">3. In Valutazione</h5>
-                    <p className="small mb-0">Se la proposta raggiunge un certo consenso, viene presa in carico dall'amministrazione per uno studio di fattibilità.</p>
+                    <p className="small mb-0">Se la proposta raggiunge un certo consenso, viene presa in carico dall&apos;amministrazione per uno studio di fattibilità.</p>
                   </div>
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function GuidePage() {
                 <div>
                   <h5 className="fw-bold">Voto Positivo (+1)</h5>
                   <p className="mb-0 text-muted small">
-                    Usa questo tasto se ritieni che la proposta sia utile per la città. Più voti positivi riceve una proposta, più salirà in classifica e attirerà l'attenzione dell'amministrazione.
+                    Usa questo tasto se ritieni che la proposta sia utile per la città. Più voti positivi riceve una proposta, più salirà in classifica e attirerà l&apos;attenzione dell&apos;amministrazione.
                   </p>
                 </div>
               </div>
@@ -181,7 +181,7 @@ export default function GuidePage() {
               <h2 className="h3 fw-bold mb-0">4. Partecipare ai Sondaggi</h2>
             </div>
             <p>
-              A differenza delle proposte (create dai cittadini), i <strong>Sondaggi</strong> sono creati direttamente dall'Amministrazione o dai Moderatori per chiedere un parere specifico su un tema caldo.
+              A differenza delle proposte (create dai cittadini), i <strong>Sondaggi</strong> sono creati direttamente dall&apos;Amministrazione o dai Moderatori per chiedere un parere specifico su un tema caldo.
             </p>
             <ul className="list-group list-group-flush shadow-sm rounded-3">
               <li className="list-group-item d-flex align-items-center">

@@ -35,7 +35,7 @@ export default function RegulationPage() {
                 <h2 className="h4 fw-bold mb-0">Chi può partecipare</h2>
               </div>
               <p>
-                La partecipazione è aperta a tutti i cittadini residenti nel comune. Per inserire proposte o votare è necessaria la registrazione, che verifica l'identità dell'utente per garantire il principio "una testa, un voto".
+                La partecipazione è aperta a tutti i cittadini residenti nel comune. Per inserire proposte o votare è necessaria la registrazione, che verifica l&apos;identità dell&apos;utente per garantire il principio &quot;una testa, un voto&quot;.
               </p>
               <ul className="list-unstyled text-muted ps-4 border-start border-3 border-light">
                 <li className="mb-2">✅ Età minima: <strong>16 anni</strong>.</li>
@@ -72,7 +72,7 @@ export default function RegulationPage() {
                     <h5 className="h6 fw-bold text-danger">Cosa rifiutiamo</h5>
                     <ul className="small text-muted mb-0 ps-3">
                       <li>Interessi puramente privati o commerciali.</li>
-                      <li>Linguaggio offensivo, discriminatorio o d'odio.</li>
+                      <li>Linguaggio offensivo, discriminatorio o d&apos;odio.</li>
                       <li>Proposte duplicate (controlla prima di scrivere!).</li>
                       <li>Questioni di competenza nazionale (non comunale).</li>
                     </ul>
@@ -91,7 +91,7 @@ export default function RegulationPage() {
                 <h2 className="h4 fw-bold mb-0">Sondaggi Istituzionali</h2>
               </div>
               <p>
-                I sondaggi presenti nella sezione dedicata sono creati direttamente dall'Amministrazione per consultare i cittadini su temi specifici.
+                I sondaggi presenti nella sezione dedicata sono creati direttamente dall&apos;Amministrazione per consultare i cittadini su temi specifici.
               </p>
               <p className="text-muted small">
                 A differenza delle proposte, i sondaggi hanno una durata limitata. Una volta scaduti, i risultati vengono analizzati e pubblicati come report ufficiale.

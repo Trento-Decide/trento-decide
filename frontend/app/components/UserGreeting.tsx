@@ -11,9 +11,10 @@ export default function UserGreeting() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line
     setUser(getUserData())
     setMounted(true)
-    
+
     const handleAuthChange = () => setUser(getUserData())
     window.addEventListener("authChange", handleAuthChange)
     return () => window.removeEventListener("authChange", handleAuthChange)
@@ -26,10 +27,10 @@ export default function UserGreeting() {
       <div className="mb-5 p-4 rounded-3 shadow-sm bg-white border-start border-5" style={{ borderColor: theme.primary }}>
         <h1 className="fw-bold mb-2">Bentornato, {user.username}! 👋</h1>
         <p className="text-muted mb-3">
-          C'è fermento nella tua città. Ecco le ultime novità per te.
+          C&apos;è fermento nella tua città. Ecco le ultime novità per te.
         </p>
         <div className="d-flex gap-2">
-          <Link href="/proposte/nuova" className="btn btn-primary text-white">
+          <Link href="/proposte/editor" className="btn btn-primary text-white">
             + Crea Proposta
           </Link>
           <Link href="/profilo" className="btn btn-outline-secondary">

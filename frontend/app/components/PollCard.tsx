@@ -12,10 +12,10 @@ export default function PollCard({ poll }: PollCardProps) {
   
   const catColor = poll.categoryColour || '#17a2b8';
   const isActive = poll.isActive;
-  const expiresAt = poll.expiresAt ? new Date(poll.expiresAt) : null;
 
   const timeLeftString = useMemo(() => {
-    if (!expiresAt) return null;
+    if (!poll.expiresAt) return null;
+    const expiresAt = new Date(poll.expiresAt);
     const now = new Date();
     const diff = expiresAt.getTime() - now.getTime();
     
@@ -26,7 +26,7 @@ export default function PollCard({ poll }: PollCardProps) {
 
     if (days > 0) return `Termina tra ${days}g ${hours}h`;
     return `Termina tra ${hours} ore`;
-  }, [expiresAt]);
+  }, [poll.expiresAt]);
 
   return (
     <div 

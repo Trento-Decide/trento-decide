@@ -10,13 +10,6 @@ function getString(param: string | string[] | undefined): string | undefined {
   return typeof param === "string" ? param : undefined
 }
 
-function getNumber(param: string | string[] | undefined): number | undefined {
-  const val = getString(param)
-  if (!val) return undefined
-  const num = parseInt(val, 10)
-  return isNaN(num) ? undefined : num
-}
-
 export default async function SearchPage({
   searchParams,
 }: {

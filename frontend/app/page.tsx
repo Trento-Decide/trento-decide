@@ -4,7 +4,7 @@ import UserGreeting from "@/app/components/UserGreeting"
 import ProposalCard from "@/app/components/ProposalCard"
 import PollCard from "@/app/components/PollCard"
 import { theme } from "@/lib/theme"
-import { Category, ProposalSearchItem } from "../../shared/models"
+import { Category, ProposalSearchItem, PollSearchItem } from "../../shared/models"
 
 export const revalidate = 60 
 
@@ -17,7 +17,7 @@ export default async function HomePage() {
 
   const categories: Category[] = categoriesRes.status === 'fulfilled' ? categoriesRes.value.data : []
   const recentProposals: ProposalSearchItem[] = proposalsRes.status === 'fulfilled' ? proposalsRes.value : []
-  const activePolls = (pollsRes.status === 'fulfilled' ? pollsRes.value.data : []) as any[]
+  const activePolls = (pollsRes.status === 'fulfilled' ? pollsRes.value.data : []) as PollSearchItem[]
 
   return (
     <div className="container py-4">
