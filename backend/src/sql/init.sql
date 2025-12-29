@@ -126,9 +126,16 @@ CREATE TABLE proposal_votes (
 CREATE TABLE favourites (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
+  
+  proposal_id INTEGER REFERENCES proposals(id) ON DELETE CASCADE,
+  poll_id INTEGER REFERENCES polls(id) ON DELETE CASCADE,
+  
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT uq_fav_proposal UNIQUE (user_id, proposal_id)
+
+  CONSTRAINT check_fav_exclusive CHECK (
+    (proposal_id IS NOT NULL AND poll_id IS NULL) OR 
+    (proposal_id IS NULL AND poll_id IS NOT NULL)
+  )
 );
 
 CREATE TABLE user_views (
@@ -167,5 +174,7 @@ CREATE TABLE user_sanctions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX uq_fav_proposal ON favourites (user_id, proposal_id) WHERE proposal_id IS NOT NULL;
+CREATE UNIQUE INDEX uq_fav_poll ON favourites (user_id, poll_id) WHERE poll_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_attachments_proposal_slot ON attachments (proposal_id, slot_key);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (user_id, is_read);

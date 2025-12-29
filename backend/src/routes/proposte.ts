@@ -639,7 +639,14 @@ router.post(
       const exists = await pool.query("SELECT 1 FROM proposals WHERE id=$1", [proposalId])
       if (exists.rowCount === 0) return res.status(404).json({ error: "Not found" })
 
-      await pool.query(`INSERT INTO favourites (user_id, proposal_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [userId, proposalId])
+      await pool.query(
+        `INSERT INTO favourites (user_id, proposal_id) 
+         VALUES ($1, $2) 
+         ON CONFLICT (user_id, proposal_id) WHERE proposal_id IS NOT NULL 
+         DO NOTHING`, 
+        [userId, proposalId]
+      )
+
       return res.json({ isFavourited: true })
     } catch (err) {
       console.error(err)
