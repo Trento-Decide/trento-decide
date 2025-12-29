@@ -22,7 +22,6 @@ export default function GuidePage() {
       </div>
 
       <div className="row g-5">
-        {/* SIDEBAR DI NAVIGAZIONE (Sticky su Desktop) */}
         <div className="col-lg-3 d-none d-lg-block">
           <div className="sticky-top" style={{ top: "2rem", zIndex: 1 }}>
             <div className="card border-0 shadow-sm">
@@ -56,10 +55,8 @@ export default function GuidePage() {
           </div>
         </div>
 
-        {/* CONTENUTO PRINCIPALE */}
         <div className="col-lg-9">
           
-          {/* SEZIONE 1: ACCOUNT */}
           <section id="account" className="mb-5 scroll-margin-top">
             <div className="d-flex align-items-center mb-3">
               <div className="icon-wrapper d-flex align-items-center justify-content-center rounded-circle me-3 text-white" style={{ width: 48, height: 48, backgroundColor: theme.primary }}>
@@ -81,7 +78,6 @@ export default function GuidePage() {
             </div>
           </section>
 
-          {/* SEZIONE 2: PROPOSTE */}
           <section id="proposte" className="mb-5 scroll-margin-top">
             <div className="d-flex align-items-center mb-3">
               <div className="icon-wrapper d-flex align-items-center justify-content-center rounded-circle me-3 text-white" style={{ width: 48, height: 48, backgroundColor: theme.dark ?? "#5c6f82" }}>
@@ -94,8 +90,6 @@ export default function GuidePage() {
               Hai un'idea per migliorare il quartiere? Puoi inviarla all'amministrazione seguendo questi passaggi.
               Ogni proposta segue un ciclo di vita specifico:
             </p>
-
-            
 
             <div className="row g-3 mb-4">
               <div className="col-md-6">
@@ -140,7 +134,6 @@ export default function GuidePage() {
             </div>
           </section>
 
-          {/* SEZIONE 3: VOTI */}
           <section id="voti" className="mb-5 scroll-margin-top">
             <div className="d-flex align-items-center mb-3">
               <div className="icon-wrapper d-flex align-items-center justify-content-center rounded-circle me-3 text-white" style={{ width: 48, height: 48, backgroundColor: "#e0ad16" }}>
@@ -180,7 +173,6 @@ export default function GuidePage() {
             </div>
           </section>
 
-          {/* SEZIONE 4: SONDAGGI */}
           <section id="sondaggi" className="mb-5 scroll-margin-top">
             <div className="d-flex align-items-center mb-3">
               <div className="icon-wrapper d-flex align-items-center justify-content-center rounded-circle me-3 text-white" style={{ width: 48, height: 48, backgroundColor: "#17a2b8" }}>
@@ -203,7 +195,6 @@ export default function GuidePage() {
             </ul>
           </section>
 
-          {/* SEZIONE 5: MODERAZIONE */}
           <section id="moderazione" className="mb-5 scroll-margin-top">
             <div className="d-flex align-items-center mb-3">
               <div className="icon-wrapper d-flex align-items-center justify-content-center rounded-circle me-3 text-white" style={{ width: 48, height: 48, backgroundColor: "#d63c7e" }}>
