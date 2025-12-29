@@ -193,7 +193,8 @@ export interface ProposalVote {
 export interface Favourite {
   id: ID
   userId: ID
-  proposalId: ID
+  proposalId?: ID
+  pollId?: ID
   createdAt: ISODateString
 }
 
@@ -214,6 +215,7 @@ export interface Poll {
   expiresAt?: ISODateString
   createdAt: ISODateString
   questions?: PollQuestion[]
+  isFavourited?: boolean
 }
 
 export interface PollQuestion {
@@ -278,37 +280,44 @@ export interface PollCreateInput {
   }>
 }
 
-export interface ProposalFilters {
-  q?: string
-  titlesOnly?: boolean
-  authorId?: ID
-  authorUsername?: string
-  categoryId?: ID
-  categoryCode?: string
-  statusId?: ID
-  statusCode?: string
-  favourites?: boolean
-  minVotes?: number
-  maxVotes?: number
-  dateFrom?: ISODateString
-  dateTo?: ISODateString
-  sortBy?: "date" | "votes" | "title"
-  sortOrder?: "asc" | "desc"
+interface BaseSearchFilters {
+  q?: string;              
+  titlesOnly?: boolean;
+
+  authorId?: number | string;       
+  authorUsername?: string;
+  categoryId?: number | string;     
+  categoryCode?: string;
+
+  favourites?: boolean; 
+
+  dateFrom?: ISODateString;
+  dateTo?: ISODateString;
+
+  limit?: number;
+  sortBy?: 'date' | 'votes' | 'title'; 
+  sortOrder?: 'asc' | 'desc';
 }
 
-export interface GlobalSearchFilters {
-  q: string
-  titlesOnly?: boolean
-  authorUsername?: string
-  type?: "all" | "proposta" | "sondaggio"
-  dateFrom?: ISODateString
-  dateTo?: ISODateString
-  categoryCode?: string
-  statusCode?: string
-  minVotes?: number
-  maxVotes?: number
-  sortBy?: "date" | "votes" | "title"
-  sortOrder?: "asc" | "desc"
+export interface ProposalFilters extends BaseSearchFilters {
+  statusId?: number | string;
+  statusCode?: string;
+  
+  minVotes?: number;
+  maxVotes?: number;  
+}
+
+export interface PollFilters extends BaseSearchFilters {
+  isActive?: boolean; 
+}
+
+export interface GlobalFilters extends BaseSearchFilters {
+  type?: 'all' | 'proposta' | 'sondaggio';
+  minVotes?: number;
+  maxVotes?: number;
+  statusId?: number | string;
+  statusCode?: string;
+  isActive?: boolean;
 }
 
 export interface ProposalSearchItem {
@@ -334,9 +343,12 @@ export interface PollSearchItem {
   description: string
   author?: string
   category?: string
-  status?: string
+  categoryColour?: string
+  isActive?: boolean
+  expiresAt?: string
   date?: string
   timestamp?: ISODateString
+  isFavourited?: boolean
 }
 
 export interface NotificationType {

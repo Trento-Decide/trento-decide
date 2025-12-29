@@ -1,164 +1,152 @@
-"use client"
-
 import Link from "next/link"
+import { getCategories, getProposals, globalSearch } from "@/lib/api"
+import UserGreeting from "@/app/components/UserGreeting"
+import ProposalCard from "@/app/components/ProposalCard"
+import PollCard from "@/app/components/PollCard"
+import { theme } from "@/lib/theme"
+import { Category, ProposalSearchItem } from "../../shared/models"
 
-export default function Home() {
-  const userName = "Alice"
+export const revalidate = 60 
 
-  const recentUpdates = [
-    {
-      text: 'La proposta "Pedonalizzare Via Roma" è passata in valutazione',
-      href: "/proposte/1",
-      linkLabel: "Pedonalizzare Via Roma",
-    },
-    {
-      text: 'Nuova modifica alla proposta che segui: "Illuminazione Via Brennero"',
-      href: "/proposte/2",
-      linkLabel: "Illuminazione Via Brennero",
-    },
-    {
-      text: 'Hai ricevuto un endorsement sulla proposta "Viale Zara verde!"',
-      href: "/proposte/3",
-      linkLabel: "Viale Zara verde!",
-    },
-  ]
+export default async function HomePage() {
+  const [categoriesRes, proposalsRes, pollsRes] = await Promise.allSettled([
+    getCategories(),
+    getProposals({ limit: 3, sortOrder: 'desc', sortBy: 'date' }),
+    globalSearch({ type: 'sondaggio', limit: 3, isActive: true })
+  ])
 
-  const recentlyViewed = [
-    { title: "Pedonalizzare Via Roma", href: "/proposte/1", votes: 132 },
-    { title: "Pista ciclabile Trento Nord → Centro", href: "/proposte/4", votes: 76 },
-  ]
-
-  const activePolls = [
-    {
-      title: "Mobilità sostenibile nel centro storico",
-      href: "/sondaggi/1",
-      closes: "12/03",
-    },
-    {
-      title: "Nuovi orari dei mezzi pubblici",
-      href: "/sondaggi/2",
-      closes: "18/03",
-    },
-  ]
-
-  const categories = [
-    "Mobilità",
-    "Ambiente",
-    "Urbanistica",
-    "Cultura",
-    "Sociale",
-    "Innovazione",
-  ]
+  const categories: Category[] = categoriesRes.status === 'fulfilled' ? categoriesRes.value.data : []
+  const recentProposals: ProposalSearchItem[] = proposalsRes.status === 'fulfilled' ? proposalsRes.value : []
+  const activePolls = (pollsRes.status === 'fulfilled' ? pollsRes.value.data : []) as any[]
 
   return (
-    <div className="container my-4">
-      <header className="mb-4">
-        <h1 className="fw-bold mb-1">Bentornato @{userName}!</h1>
-        <p className="text-muted mb-0">
-          Ecco cosa è successo mentre non c&apos;eri <span>👇</span>
-        </p>
-      </header>
+    <div className="container py-4">
+      
+      <UserGreeting />
 
-      <div className="row">
+      <div className="row g-4">
         <div className="col-lg-8">
-          <section className="mb-4">
-            <h2 className="h5 fw-bold mb-3">Aggiornamenti recenti</h2>
-            <div className="bg-light border rounded-3 p-3">
-              {recentUpdates.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`py-2 ${idx !== recentUpdates.length - 1 ? "border-bottom" : ""}`}
+          
+          {activePolls.length > 0 && (
+            <section className="mb-5">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h2 className="h4 fw-bold mb-0">Sondaggi in corso</h2>
+                <Link 
+                  href="/cerca?type=sondaggio" 
+                  className="small fw-bold link-hover-underline" 
+                  style={{ color: theme.primary }}
                 >
-                  <Link href={item.href} className="fw-semibold">
-                    {item.linkLabel}
-                  </Link>{" "}
-                  – {item.text.replace(item.linkLabel, "").trim()}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="mb-4">
-            <h2 className="h5 fw-bold mb-3">Le tue proposte viste di recente</h2>
-            <div className="bg-light border rounded-3 p-3">
-              {recentlyViewed.map((p, idx) => (
-                <div
-                  key={idx}
-                  className={`py-2 ${idx !== recentlyViewed.length - 1 ? "border-bottom" : ""}`}
-                >
-                  <Link href={p.href} className="fw-semibold">
-                    {p.title}
-                  </Link>{" "}
-                  – {p.votes} voti
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="mb-4">
-            <h2 className="h5 fw-bold mb-3">Sondaggi attivi</h2>
-            <div className="bg-light border rounded-3 p-3">
-              {activePolls.map((s, idx) => (
-                <div
-                  key={idx}
-                  className={`py-2 ${idx !== activePolls.length - 1 ? "border-bottom" : ""}`}
-                >
-                  <Link href={s.href} className="fw-semibold">
-                    {s.title}
-                  </Link>{" "}
-                  – <span className="text-muted">chiude il {s.closes}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="mb-5">
-            <div className="bg-light border rounded-3 p-3 p-md-4">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h2 className="h5 fw-bold mb-0">Esplora per categoria</h2>
-                <Link href="/categorie" className="text-decoration-none">
-                  vai →
+                  Vedi tutti
                 </Link>
               </div>
-              <ul className="mb-0">
-                {categories.map((cat) => (
-                  <li key={cat}>
-                    <Link href={`/categorie/${encodeURIComponent(cat.toLowerCase())}`} className="text-decoration-underline">
-                      {cat}
-                    </Link>
-                  </li>
+              <div className="row g-3">
+                {activePolls.map((poll) => (
+                  <div key={poll.id} className="col-md-6">
+                    <PollCard poll={poll} />
+                  </div>
                 ))}
-              </ul>
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
 
           <section className="mb-5">
-            <h2 className="h6 text-success fw-bold mb-2">Come funziona?</h2>
-            <ol className="mb-2">
-              <li>Proponi idee</li>
-              <li>Collabora o migliora le proposte</li>
-              <li>Vota e partecipa alle decisioni</li>
-              <li>Segui gli esiti e i report</li>
-            </ol>
-            <Link href="/guida" className="text-decoration-underline">
-              Leggi la guida completa →
-            </Link>
+            <div className="d-flex align-items-center justify-content-between mb-3">
+              <h2 className="h4 fw-bold mb-0">Proposte recenti</h2>
+              <Link 
+                href="/proposte" 
+                className="small fw-bold link-hover-underline" 
+                style={{ color: theme.primary }}
+              >
+                Vedi tutte
+              </Link>
+            </div>
+            
+            <div>
+              {recentProposals.map((p) => (
+                <ProposalCard key={p.id} proposal={p} />
+              ))}
+            </div>
           </section>
         </div>
 
-        <div className="col-lg-4 mt-4 mt-lg-0">
-          <aside className="bg-success text-white rounded-3 p-3">
-            <h2 className="h6 fw-bold mb-2">Utenti online</h2>
-            <p className="small mb-1">
-              LupicGregor, Marcolume, Lorenzo_ITA, PaoloCive93, RiccardoA, Enrico_91, Gabriele_Simeoni,
-              Fulvio87, Matteo_S, FedericaG, GentaLorenzi, ...
-            </p>
-            <p className="small mb-0">
-              e altri 344.
-            </p>
-          </aside>
+        <div className="col-lg-4">
+          
+          <div className="card border-0 shadow-sm mb-4">
+            <div className="card-header bg-white fw-bold py-3 border-bottom-0">
+              Esplora per Categoria
+            </div>
+            <div className="card-body pt-0">
+              <div className="d-flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <Link 
+                    key={cat.id} 
+                    href={`/cerca?category=${cat.code}`}
+                    className="btn btn-sm rounded-pill cat-btn fw-bold"
+                    style={{ '--cat-color': cat.colour || '#6c757d' } as React.CSSProperties}
+                  >
+                    {cat.labels.it}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="card border-0 shadow-sm bg-success text-white">
+            <div className="card-body p-4">
+              <h3 className="h5 fw-bold mb-3">La città in numeri</h3>
+              <ul className="list-unstyled mb-0">
+                <li className="mb-2 d-flex justify-content-between">
+                  <span>Proposte attive</span>
+                  <span className="fw-bold">142</span>
+                </li>
+                <li className="mb-2 d-flex justify-content-between">
+                  <span>Voti espressi</span>
+                  <span className="fw-bold">3.5k</span>
+                </li>
+                <li className="d-flex justify-content-between">
+                  <span>Cittadini iscritti</span>
+                  <span className="fw-bold">890</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
         </div>
       </div>
+
+      <style>{`
+        .link-hover-underline {
+          text-decoration: none;
+          transition: text-decoration 0.2s;
+        }
+        .link-hover-underline:hover {
+          text-decoration: underline;
+        }
+
+        .hover-lift { transition: transform 0.2s, box-shadow 0.2s; }
+        .hover-lift:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
+        
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .cat-btn {
+          background-color: color-mix(in srgb, var(--cat-color), white 90%);
+          color: var(--cat-color);
+          border: 1px solid var(--cat-color);
+          transition: all 0.2s ease-in-out;
+        }
+
+        .cat-btn:hover {
+          background-color: var(--cat-color);
+          color: white;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+      `}</style>
     </div>
   )
 }

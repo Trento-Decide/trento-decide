@@ -9,10 +9,10 @@ import UserMenu from "@/app/components/UserMenu"
 import SearchBox from "@/app/components/SearchBox"
 
 const NAV_LINKS = [
-  { href: "/popolari", label: "Popolari", bold: true },
-  { href: "/novita", label: "Novità" },
+  { href: "/proposte?sortBy=votes&sortOrder=desc", label: "Popolari", bold: true },
   { href: "/proposte", label: "Proposte" },
   { href: "/proposte/editor", label: "Crea proposta" },
+  { href: "/sondaggi", label: "Sondaggi" },
   { href: "/regolamento", label: "Regolamento" },
 ]
 

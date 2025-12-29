@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { globalSearch } from "@/lib/api"
 import SearchFilters from "@/app/components/SearchFilters"
-import type { GlobalSearchFilters, GlobalSearchItem } from "../../../shared/models" 
+import type { GlobalFilters, GlobalSearchItem } from "../../../shared/models" 
 import { theme } from "@/lib/theme"
 
 export const dynamic = 'force-dynamic'
@@ -25,23 +25,19 @@ export default async function SearchPage({
   
   const resolvedParams = await searchParams;
 
-  const filters: GlobalSearchFilters = {
+  const filters: GlobalFilters = {
     q: getString(resolvedParams.q) ?? "",
     titlesOnly: resolvedParams.titlesOnly === "true",
-    type: (getString(resolvedParams.type) as GlobalSearchFilters["type"]) ?? "all",
+    type: (getString(resolvedParams.type) as GlobalFilters["type"]) ?? "all",
     
     authorUsername: getString(resolvedParams.author),
     categoryCode: getString(resolvedParams.category),
-    statusCode: getString(resolvedParams.status),
-    
-    minVotes: getNumber(resolvedParams.minVotes),
-    maxVotes: getNumber(resolvedParams.maxVotes),
     
     dateFrom: getString(resolvedParams.dateFrom),
     dateTo: getString(resolvedParams.dateTo),
     
-    sortBy: getString(resolvedParams.sortBy) as GlobalSearchFilters["sortBy"],
-    sortOrder: getString(resolvedParams.sortOrder) as GlobalSearchFilters["sortOrder"],
+    sortBy: getString(resolvedParams.sortBy) as GlobalFilters["sortBy"],
+    sortOrder: getString(resolvedParams.sortOrder) as GlobalFilters["sortOrder"],
   }
 
   const { data: results } = await globalSearch(filters)

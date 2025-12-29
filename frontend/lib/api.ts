@@ -4,7 +4,7 @@ import {
   ProposalSearchItem,
   User,
   ProposalFilters,
-  GlobalSearchFilters,
+  GlobalFilters,
   GlobalSearchItem,
   Category,
   CategoryFormSchema,
@@ -115,11 +115,11 @@ export const login = async (email: string, password: string) => {
   return body
 }
 
-export const globalSearch = async (filters: GlobalSearchFilters): Promise<{ data: GlobalSearchItem[] }> => {
+export const globalSearch = async (filters: GlobalFilters): Promise<{ data: GlobalSearchItem[] }> => {
   const url = new URL(`${apiUrl}/cerca`)
 
   Object.keys(filters).forEach(key => {
-    const value = filters[key as keyof GlobalSearchFilters]
+    const value = filters[key as keyof GlobalFilters]
     if (value !== undefined && value !== null && value !== '') {
       url.searchParams.append(key, String(value))
     }
