@@ -51,7 +51,7 @@
    psql -h localhost -U postgres -c "CREATE DATABASE trentodecide;"
    ```
 
-### Sviluppo
+#### Sviluppo
 
 6. Avvia l'applicazione in modalità sviluppo
    ```bash
@@ -63,7 +63,7 @@
    npm run db:init:dev
    ```
 
-### Produzione
+#### Produzione
 
 6. Per (ri)caricare lo schema del DB si può eseguire
    ```bash

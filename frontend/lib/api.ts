@@ -6,6 +6,7 @@ import {
   ProposalFilters,
   GlobalFilters,
   GlobalSearchItem,
+  Status,
   Category,
   CategoryFormSchema,
   ProposalInput,
@@ -209,6 +210,11 @@ export const getFavoriteForProposal = async (proposalId: number) => {
     headers: getAuthHeaders(false),
   })
   return body.isFavourited
+}
+
+export const getStatuses = async (): Promise<{ data: Status[] }> => {
+  const url = `${apiUrl}/config/statuses`
+  return apiFetch(url, { method: "GET", headers: getAuthHeaders(false), cache: "no-store" })
 }
 
 export const getCategories = async (): Promise<{ data: Category[] }> => {
