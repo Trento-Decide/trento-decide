@@ -8,19 +8,19 @@ import type { User } from "../../../shared/models"
 
 export default function UserGreeting() {
   const [user, setUser] = useState<User | null>(null)
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // eslint-disable-next-line
-    setUser(getUserData())
-    setMounted(true)
+    const update = () => {
+      const user = getUserData()
+      if (user) setUser(user)
+      else setUser(null)
+    }
 
-    const handleAuthChange = () => setUser(getUserData())
-    window.addEventListener("authChange", handleAuthChange)
-    return () => window.removeEventListener("authChange", handleAuthChange)
+    update()
+
+    window.addEventListener("authChange", update)
+    return () => window.removeEventListener("authChange", update)
   }, [])
-
-  if (!mounted) return null
 
   if (user) {
     return (
