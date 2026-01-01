@@ -4,20 +4,22 @@ import bcrypt from "bcrypt"
 import { pool } from "../database.js"
 import { signJwt } from "../utils/jwt.js"
 
+import { loginSchema, registerSchema } from "../../../shared/validation/auth.js"
+
 const router = express.Router()
 
 router.post("/login", async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body as {
-      email?: string
-      password?: string
-    }
+    const validation = loginSchema.safeParse(req.body)
 
-    if (!email || !password) {
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]!.message
       return res.status(400).json({
-        error: "Missing email or password",
+        error: firstError,
       })
     }
+
+    const { email, password } = validation.data
 
     const result = await pool.query(
       `
@@ -79,25 +81,19 @@ router.post("/login", async (req: Request, res: Response) => {
 
 router.post("/register", async (req: Request, res: Response) => {
   try {
-    const { username, email, password, emailOptIn } = req.body as {
-      username?: string
-      email?: string
-      password?: string
-      emailOptIn?: boolean
-    }
+    const validation = registerSchema.safeParse(req.body)
 
-    if (!username || !email || !password) {
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]!.message
       return res.status(400).json({
-        error: "Missing username, email or password",
+        error: firstError,
       })
     }
 
+    const { username, email, password, emailOptIn } = validation.data
+
     const usernameCheck = await pool.query(
-      `
-        SELECT id
-        FROM users
-        WHERE username = $1
-      `,
+      `SELECT id FROM users WHERE username = $1`,
       [username],
     )
     if (usernameCheck.rowCount !== 0) {
@@ -107,11 +103,7 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     const emailCheck = await pool.query(
-      `
-        SELECT id
-        FROM users
-        WHERE email = $1
-      `,
+      `SELECT id FROM users WHERE email = $1`,
       [email],
     )
     if (emailCheck.rowCount !== 0) {
@@ -121,15 +113,10 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
-
     const DEFAULT_ROLE_CODE = "cittadino"; 
 
     const roleResult = await pool.query(
-      `
-        SELECT id
-        FROM roles
-        WHERE code = $1
-      `,
+      `SELECT id FROM roles WHERE code = $1`,
       [DEFAULT_ROLE_CODE],
     )
     if (roleResult.rowCount === 0) {

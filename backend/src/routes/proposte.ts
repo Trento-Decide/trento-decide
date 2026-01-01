@@ -4,7 +4,7 @@ import { pool } from "../database.js"
 import { authenticateToken, conditionalAuthenticateToken } from "../middleware/authMiddleware.js"
 import {
   validateProposalInput,
-} from "../services/validation.js"
+} from "../services/formValidation.js"
 import { parseFilters, normalizeProposalInput } from "../utils/parse.js"
 import type {
   Proposal,

@@ -375,7 +375,9 @@ export class ApiError extends Error {
   constructor(message: string, statusCode?: number) {
     super(message)
     this.name = this.constructor.name
-    this.statusCode = statusCode
+    if (statusCode !== undefined) {
+      this.statusCode = statusCode
+    }
 
     Object.setPrototypeOf(this, ApiError.prototype)
   }

@@ -28,5 +28,8 @@
     "backend/**/*.{js,ts}": [
       "npm run lint --prefix backend"
     ]
+  },
+  "dependencies": {
+    "zod": "^4.3.4"
   }
 }

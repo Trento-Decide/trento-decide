@@ -88,12 +88,12 @@ export const providerLogin = async () => {
   setProviderToken(body.providerToken)
 }
 
-export const register = async (username: string, email: string, password: string) => {
+export const register = async (username: string, email: string, password: string, confirmPassword: string, emailOptIn: boolean) => {
   const url = `${apiUrl}/auth/register`
   await apiFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, email, password })
+    body: JSON.stringify({ username, email, password, confirmPassword, emailOptIn })
   })
 }
 

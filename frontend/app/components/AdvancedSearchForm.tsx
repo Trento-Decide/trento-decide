@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type FormEvent, useEffect } from "react"
+import { useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { theme } from "@/lib/theme"
 import type { Category, Status } from "../../../shared/models"
@@ -33,22 +33,29 @@ export default function AdvancedSearchForm({ categories, statuses }: AdvancedSea
     sortOrder: "desc"
   })
 
-  useEffect(() => {
-    if (formData.type === 'sondaggio') {
-      setFormData(prev => ({ ...prev, minVotes: "", maxVotes: "", statusCode: "" }))
-    } else if (formData.type === 'proposta') {
-      setFormData(prev => ({ ...prev, isActive: "" }))
-    }
-  }, [formData.type])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
     const checked = (e.target as HTMLInputElement).checked
 
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }))
+    setFormData(prev => {
+      const nextState = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }
+
+      if (name === 'type') {
+        if (value === 'sondaggio') {
+          nextState.minVotes = ""
+          nextState.maxVotes = ""
+          nextState.statusCode = ""
+        } else if (value === 'proposta') {
+          nextState.isActive = ""
+        }
+      }
+
+      return nextState
+    })
   }
 
   const handleSubmit = (e: FormEvent) => {
@@ -62,7 +69,10 @@ export default function AdvancedSearchForm({ categories, statuses }: AdvancedSea
     if (formData.categoryCode) params.set("categoryCode", formData.categoryCode)
     if (formData.dateFrom) params.set("dateFrom", formData.dateFrom)
     if (formData.dateTo) params.set("dateTo", formData.dateTo)
-    if (formData.type && formData.type !== "all") params.set("type", formData.type)
+    
+    if (formData.type && formData.type !== "all") {
+        params.set("type", formData.type)
+    }
     
     if (formData.type !== 'sondaggio') {
       if (formData.statusCode) params.set("statusCode", formData.statusCode)
@@ -200,7 +210,7 @@ export default function AdvancedSearchForm({ categories, statuses }: AdvancedSea
                   
                   <div className="col-md-6">
                      
-                     {!isPoll && (
+                     {isProposal && (
                        <>
                          <div className="form-section-title">Stato Proposta</div>
                          <select 
@@ -208,7 +218,6 @@ export default function AdvancedSearchForm({ categories, statuses }: AdvancedSea
                            name="statusCode" 
                            value={formData.statusCode} 
                            onChange={handleChange}
-                           disabled={isPoll}
                          >
                             <option value="">Qualsiasi stato</option>
                             {statuses.map(status => (
@@ -240,7 +249,7 @@ export default function AdvancedSearchForm({ categories, statuses }: AdvancedSea
 
                 <hr className="text-muted opacity-25 my-4"/>
 
-                {!isPoll && (
+                {isProposal && (
                   <div className="mb-4">
                     <div className="form-section-title">Numero di Voti (Solo Proposte)</div>
                     <div className="input-group">
@@ -308,7 +317,7 @@ export default function AdvancedSearchForm({ categories, statuses }: AdvancedSea
                      <div className="col">
                         <select className="form-select form-select-sm" name="sortBy" value={formData.sortBy} onChange={handleChange}>
                           <option value="date">Data creazione</option>
-                          {!isPoll && <option value="votes">Popolarità (Voti)</option>}
+                          {isProposal && <option value="votes">Popolarità (Voti)</option>}
                           <option value="title">Titolo (A-Z)</option>
                         </select>
                      </div>
