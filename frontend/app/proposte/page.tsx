@@ -49,7 +49,7 @@ export default function ProposalList() {
 
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="fw-bold">Proposte</h1>
-        <Link href="/proposte/editor" className="btn btn-primary">
+        <Link href="/proposte/nuova" className="btn btn-primary">
           Nuova Proposta
         </Link>
       </div>

@@ -202,7 +202,7 @@ export const removeFavouriteProposal = async (proposalId: number) => {
   })
 }
 
-export const getFavoriteForProposal = async (proposalId: number) => {
+export const getFavouriteForProposal = async (proposalId: number) => {
   const url = new URL(`${apiUrl}/proposte/${proposalId}/preferisco`)
 
   const body = await apiFetch<{ isFavourited: boolean }>(url.toString(), {

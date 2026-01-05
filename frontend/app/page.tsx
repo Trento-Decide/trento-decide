@@ -20,6 +20,7 @@ export default async function HomePage() {
   const activePolls = (pollsRes.status === 'fulfilled' ? pollsRes.value.data : []) as PollSearchItem[]
 
   return (
+    <div style={{ backgroundColor: "#f2f7fc", minHeight: "100vh" }}>
     <div className="container py-4">
       
       <UserGreeting />
@@ -71,18 +72,21 @@ export default async function HomePage() {
 
         <div className="col-lg-4">
           
-          <div className="card border-0 shadow-sm mb-4">
-            <div className="card-header bg-white fw-bold py-3 border-bottom-0">
+          <div className="card border-0 rounded-3 shadow-sm mb-4 overflow-hidden">
+            <div className="card-header bg-white fw-bold py-3 border-bottom-0 ps-4">
               Esplora per Categoria
             </div>
-            <div className="card-body pt-0">
+            <div className="card-body pt-0 ps-4 pe-4 pb-4">
               <div className="d-flex flex-wrap gap-2">
                 {categories.map((cat) => (
                   <Link 
                     key={cat.id} 
                     href={`/cerca?category=${cat.code}`}
-                    className="btn btn-sm rounded-pill cat-btn fw-bold"
-                    style={{ '--cat-color': cat.colour || '#6c757d' } as React.CSSProperties}
+                    className="btn rounded-3 cat-btn px-3"
+                    style={{ 
+                      '--cat-color': cat.colour || '#6c757d',
+                      fontSize: '0.85rem'
+                    } as React.CSSProperties}
                   >
                     {cat.labels.it}
                   </Link>
@@ -91,23 +95,52 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="card border-0 shadow-sm bg-success text-white">
+          <div className="card border-0 rounded-3 shadow-sm" style={{ backgroundColor: '#eef6f6' }}>
             <div className="card-body p-4">
-              <h3 className="h5 fw-bold mb-3">La città in numeri</h3>
-              <ul className="list-unstyled mb-0">
-                <li className="mb-2 d-flex justify-content-between">
-                  <span>Proposte attive</span>
-                  <span className="fw-bold">142</span>
-                </li>
-                <li className="mb-2 d-flex justify-content-between">
-                  <span>Voti espressi</span>
-                  <span className="fw-bold">3.5k</span>
-                </li>
-                <li className="d-flex justify-content-between">
-                  <span>Cittadini iscritti</span>
-                  <span className="fw-bold">890</span>
-                </li>
-              </ul>
+              
+              <h3 className="h6 text-uppercase fw-bold mb-4" style={{ color: '#4a6f75', letterSpacing: '0.5px', fontSize: '0.75rem' }}>
+                La città in numeri
+              </h3>
+              
+              <div className="d-flex flex-column gap-4">
+                
+                <div className="d-flex align-items-center gap-3">
+                  <div className="stat-icon-bg bg-white text-primary shadow-sm">
+                     <svg className="icon" aria-hidden="true" style={{width: 24, height: 24, fill: theme.primary }}>
+                        <use href="/svg/sprites.svg#it-presentation"></use>
+                     </svg>
+                  </div>
+                  <div>
+                    <div className="fs-4 fw-bold lh-1" style={{ color: '#2c4b52' }}>142</div>
+                    <div className="small fw-medium" style={{ color: '#688a91' }}>Proposte attive</div>
+                  </div>
+                </div>
+
+                <div className="d-flex align-items-center gap-3">
+                  <div className="stat-icon-bg bg-white shadow-sm" style={{ color: '#d12929' }}>
+                     <svg className="icon" aria-hidden="true" style={{width: 24, height: 24, fill: 'currentColor'}}>
+                        <use href="/svg/sprites.svg#it-star-outline"></use>
+                     </svg>
+                  </div>
+                  <div>
+                    <div className="fs-4 fw-bold lh-1" style={{ color: '#2c4b52' }}>3.5k</div>
+                    <div className="small fw-medium" style={{ color: '#688a91' }}>Voti espressi</div>
+                  </div>
+                </div>
+
+                <div className="d-flex align-items-center gap-3">
+                  <div className="stat-icon-bg bg-white shadow-sm" style={{ color: '#2d8a4e' }}>
+                     <svg className="icon" aria-hidden="true" style={{width: 24, height: 24, fill: 'currentColor'}}>
+                        <use href="/svg/sprites.svg#it-user"></use>
+                     </svg>
+                  </div>
+                  <div>
+                    <div className="fs-4 fw-bold lh-1" style={{ color: '#2c4b52' }}>890</div>
+                    <div className="small fw-medium" style={{ color: '#688a91' }}>Cittadini iscritti</div>
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
 
@@ -126,27 +159,30 @@ export default async function HomePage() {
         .hover-lift { transition: transform 0.2s, box-shadow 0.2s; }
         .hover-lift:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
         
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+        .stat-icon-bg {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .cat-btn {
-          background-color: color-mix(in srgb, var(--cat-color), white 90%);
-          color: var(--cat-color);
-          border: 1px solid var(--cat-color);
-          transition: all 0.2s ease-in-out;
+          background-color: color-mix(in srgb, var(--cat-color), white 88%);
+          color: color-mix(in srgb, var(--cat-color), black 20%);
+          border: 1px solid color-mix(in srgb, var(--cat-color), white 80%);
+          font-weight: 600;
+          letter-spacing: -0.3px;
+          transition: all 0.2s ease;
         }
 
         .cat-btn:hover {
-          background-color: var(--cat-color);
-          color: white;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          background-color: color-mix(in srgb, var(--cat-color), white 80%);
+          color: color-mix(in srgb, var(--cat-color), black 40%);
         }
       `}</style>
+    </div>
     </div>
   )
 }

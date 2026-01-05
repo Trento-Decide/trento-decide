@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { FormField } from "../models.js"
+import type { FormField } from "../models.js" 
 
 const localizedText = z.record(z.string(), z.string())
 
@@ -19,16 +19,23 @@ export const categoryFormSchema = z.array(
     baseField.extend({ kind: z.literal("select"), options: z.array(z.object({ value: z.string(), label: localizedText })).min(1) }),
     baseField.extend({ kind: z.literal("multiselect"), options: z.array(z.object({ value: z.string(), label: localizedText })).min(1) }),
     baseField.extend({ kind: z.literal("date"), min: z.string().optional(), max: z.string().optional() }),
-    baseField.extend({ kind: z.literal("map"), geoSchema: z.unknown().optional() }),
+    
+    baseField.extend({ 
+      kind: z.literal("map"), 
+      geoSchema: z.unknown().optional(),
+      drawMode: z.enum(["marker", "polygon"]).optional()
+    }),
+    
     baseField.extend({ kind: z.literal("file"), accept: z.array(z.string()).optional(), multiple: z.boolean().optional(), maxFiles: z.number().int().positive().optional(), maxSizeMB: z.number().int().positive().optional() }),
   ]),
 )
 
-export function buildAdditionalDataSchema(fields: FormField[]) {
+export function buildAdditionalDataSchema(fields: FormField[], ignoreRequired = false) {
   const shape: Record<string, z.ZodTypeAny> = {}
 
   for (const f of fields) {
-    const required = f.required === true
+    const required = ignoreRequired ? false : (f.required === true)
+    
     if (f.kind === "file") continue
 
     let fieldSchema: z.ZodTypeAny
@@ -72,15 +79,28 @@ export function buildAdditionalDataSchema(fields: FormField[]) {
         break
       }
       case "map": {
-        fieldSchema = z.record(z.string(), z.unknown())
+        fieldSchema = z.string()
         break
       }
       default: {
         fieldSchema = z.unknown()
       }
     }
-    shape[f.key] = required ? fieldSchema : fieldSchema.optional()
+    
+    if (required) {
+       if (f.kind === "text" || f.kind === "map" || f.kind === "date") {
+           shape[f.key] = (fieldSchema as z.ZodString).min(1, { message: "Campo obbligatorio" })
+       } 
+       else if (f.kind === "multiselect") {
+           shape[f.key] = (fieldSchema as z.ZodArray<any>).min(1, { message: "Seleziona almeno un'opzione" })
+       }
+       else {
+           shape[f.key] = fieldSchema
+       }
+    } else {
+       shape[f.key] = fieldSchema.optional().or(z.null()).or(z.literal(""))
+    }
   }
 
-  return z.object(shape).strict()
+  return z.object(shape).strip()
 }

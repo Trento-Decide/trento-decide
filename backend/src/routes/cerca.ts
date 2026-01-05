@@ -6,7 +6,16 @@ import type {
   GlobalFilters,
   ProposalSearchItem,
   PollSearchItem,
+  StatusRef,
+  CategoryRef,
+  UserRef,
 } from "../../../shared/models.js";
+
+type RequestWithUser = Request & {
+  user?: {
+    id: number;
+  };
+};
 
 const router = express.Router();
 
@@ -110,6 +119,7 @@ router.get(
   async (req: Request, res: Response<{ data: GlobalSearchItem[] } | { error: string }>) => {
     try {
       const filters = parseFilters(req.query as Record<string, unknown>);
+      const currentUserId = (req as unknown as RequestWithUser).user?.id;
       
       const values: unknown[] = [];
       const addParam = (val: unknown) => {
@@ -166,6 +176,10 @@ router.get(
            where.push(`p.vote_value <= ${idx}`);
         }
 
+        const favColumn = currentUserId 
+            ? `EXISTS(SELECT 1 FROM favourites f WHERE f.proposal_id = p.id AND f.user_id = ${addParam(currentUserId)})`
+            : `false`;
+
         propParts.push(`
           SELECT 
             'proposta' as item_type,
@@ -174,18 +188,27 @@ router.get(
             p.description, 
             p.created_at, 
             p.vote_value, 
-            u.username AS author_name,
-            c.labels ->> 'it' AS category_label_it,
+            -- Author Info
+            u.id as author_id,
+            u.username AS author_username,
+            -- Category Info
+            c.id AS category_id,
+            c.labels AS category_labels,
             c.code AS category_code,
             c.colour AS category_colour,
-            s.labels ->> 'it' AS status_label_it,
+            -- Status Info
+            s.id AS status_id,
+            s.labels AS status_labels,
             s.code AS status_code,
             s.colour AS status_colour,
+            -- Poll Specifics (Null for proposals)
             NULL::boolean as poll_is_active,
-            NULL::timestamptz as poll_expires_at
+            NULL::timestamptz as poll_expires_at,
+            -- Favourites
+            ${favColumn} as is_favourited
           FROM proposals p
           JOIN users u ON p.author_id = u.id
-          JOIN categories c ON p.category_id = c.id
+          LEFT JOIN categories c ON p.category_id = c.id
           JOIN statuses s ON p.status_id = s.id
           WHERE ${where.join(" AND ")}
         `);
@@ -234,15 +257,24 @@ router.get(
             pl.description, 
             pl.created_at,
             NULL::integer as vote_value, 
-            u.username AS author_name,
-            c.labels ->> 'it' AS category_label_it,
+            -- Author Info
+            u.id as author_id,
+            u.username AS author_username,
+            -- Category Info
+            c.id AS category_id,
+            c.labels AS category_labels,
             c.code AS category_code,
             c.colour AS category_colour, 
-            NULL as status_label_it,
+            -- Status Info (Null for polls)
+            NULL AS status_id,
+            NULL::jsonb as status_labels,
             NULL as status_code,
             NULL as status_colour,
+            -- Poll Specifics
             pl.is_active as poll_is_active,
-            pl.expires_at as poll_expires_at
+            pl.expires_at as poll_expires_at,
+            -- Favourites
+            false as is_favourited
           FROM polls pl
           JOIN users u ON pl.created_by = u.id
           LEFT JOIN categories c ON pl.category_id = c.id
@@ -282,50 +314,64 @@ router.get(
         description: string;
         created_at: Date;
         vote_value: number | null;
-        author_name: string | null;
-        category_label_it: string | null;
+        
+        author_id: number;
+        author_username: string;
+
+        category_id: number | null;
+        category_labels: Record<string, string> | null;
         category_code: string | null;
         category_colour: string | null;
-        status_label_it: string | null;
+
+        status_id: number | null;
+        status_labels: Record<string, string> | null;
         status_code: string | null;
         status_colour: string | null;
+
         poll_is_active: boolean | null;
         poll_expires_at: Date | null;
+        is_favourited: boolean;
       }
 
       const items: GlobalSearchItem[] = result.rows.map((row: SearchRow) => {
         
-        const commonFields: {
-          id: number;
-          title: string;
-          description: string;
-          date: string;
-          timestamp: string;
-          author?: string;
-          category?: string;
-          categoryColour?: string;
-        } = {
+        const authorRef = {
+            id: row.author_id,
+            username: row.author_username,
+        } as UserRef;
+
+        const categoryRef: CategoryRef | undefined = row.category_id ? {
+            id: row.category_id,
+            code: row.category_code!,
+            labels: row.category_labels!,
+            colour: row.category_colour!
+        } as CategoryRef: undefined;
+
+        const baseFields = {
           id: row.id,
           title: row.title,
           description: row.description,
           date: new Date(row.created_at).toLocaleDateString("it-IT"),
-          timestamp: new Date(row.created_at).toISOString(),
+          createdAt: new Date(row.created_at).toISOString(),
+          isFavourited: row.is_favourited
         };
 
-        if (row.author_name) commonFields.author = row.author_name;
-        if (row.category_label_it) commonFields.category = row.category_label_it;
-        if (row.category_colour) commonFields.categoryColour = row.category_colour;
-
         if (row.item_type === "proposta") {
+           const statusRef: StatusRef | undefined = row.status_code ? {
+               id: row.status_id!,
+               code: row.status_code,
+               labels: row.status_labels!,
+               colour: row.status_colour!
+           } as StatusRef : undefined;
+
            const p: ProposalSearchItem = {
              type: "proposta",
-             ...commonFields,
+             ...baseFields,
+             voteValue: row.vote_value !== null ? Number(row.vote_value) : 0,
+             author: authorRef,
+             ...(categoryRef ? { category: categoryRef } : {}),
+             ...(statusRef ? { status: statusRef } : {})
            };
-
-           if (row.status_label_it) p.status = row.status_label_it;
-           if (row.status_colour) p.statusColour = row.status_colour;
-           if (row.vote_value !== null) p.voteValue = Number(row.vote_value);
-
            return p;
         } else {
            const isExpired = row.poll_expires_at ? new Date(row.poll_expires_at) < new Date() : false;
@@ -333,10 +379,13 @@ router.get(
 
            const p: PollSearchItem = {
              type: "sondaggio",
-             ...commonFields,
+             ...baseFields,
+             isActive: isActive,
+             timestamp: new Date(row.created_at).toISOString(),
+             author: authorRef,
+             ...(categoryRef ? { category: categoryRef } : {}),
+             ...(row.poll_expires_at ? { expiresAt: row.poll_expires_at.toISOString() } : {})
            };
-           if (row.poll_is_active !== null) p.isActive = isActive;
-           if (row.poll_expires_at) p.expiresAt = row.poll_expires_at.toISOString();
            return p;
         }
       });

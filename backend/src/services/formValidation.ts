@@ -8,9 +8,9 @@ export async function loadFormSchemaByCategoryId(categoryId: number): Promise<Fo
   return categoryFormSchema.parse(rows[0].form_schema ?? []) as FormField[]
 }
 
-async function validateAdditionalDataByCategoryId(categoryId: number, additionalData: unknown) {
+async function validateAdditionalDataByCategoryId(categoryId: number, additionalData: unknown, isDraft: boolean) {
   const fields = await loadFormSchemaByCategoryId(categoryId)
-  const zodSchema = buildAdditionalDataSchema(fields)
+  const zodSchema = buildAdditionalDataSchema(fields, isDraft)
   return zodSchema.parse(additionalData ?? {})
 }
 
@@ -74,7 +74,8 @@ export async function validateProposalInput(
   }
 
   if (additionalData !== undefined && categoryId !== undefined) {
-    await validateAdditionalDataByCategoryId(categoryId, additionalData)
+    const isDraft = ctx === 'draft';
+    await validateAdditionalDataByCategoryId(categoryId, additionalData, isDraft)
   }
 
   if (ctx === 'publish' && options?.proposalId !== undefined) {

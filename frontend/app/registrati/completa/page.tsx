@@ -128,7 +128,7 @@ export default function RegistrazioneCompleta() {
           <form onSubmit={handleSubmit} noValidate>
             
             <AuthInput 
-              label="Username"
+              label="Nome utente"
               name="username"
               value={formData.username}
               onChange={handleChange}

@@ -2,24 +2,26 @@ export type ID = number
 export type ISODateString = string
 export type LocalizedText = { [lang: string]: string }
 
+export type MapDrawMode = 'marker' | 'polygon';
+
 export interface RoleRef {
   id: ID
   code: string
-  label?: string
+  labels?: string
   colour?: string
 }
 
 export interface CategoryRef {
   id: ID
   code: string
-  label?: string
+  labels?: LocalizedText
   colour?: string
 }
 
 export interface StatusRef {
   id: ID
   code: string
-  label?: string
+  labels?: LocalizedText
   colour?: string
 }
 
@@ -106,6 +108,7 @@ export interface DateField extends BaseFormField {
 
 export interface MapField extends BaseFormField {
   kind: "map"
+  drawMode?: MapDrawMode
   geoSchema?: unknown
 }
 
@@ -325,14 +328,12 @@ export interface ProposalSearchItem {
   id: ID
   title: string
   description: string
-  author?: string
-  category?: string
-  categoryColour?: string
-  status?: string
-  statusColour?: string
+  author?: UserRef
+  category?: CategoryRef
+  status?: StatusRef
   voteValue?: number
   date?: string
-  timestamp?: ISODateString
+  createdAt?: ISODateString
   isFavourited?: boolean
 }
 
@@ -341,9 +342,8 @@ export interface PollSearchItem {
   id: ID
   title: string
   description: string
-  author?: string
-  category?: string
-  categoryColour?: string
+  author?: UserRef
+  category?: CategoryRef
   isActive?: boolean
   expiresAt?: string
   date?: string

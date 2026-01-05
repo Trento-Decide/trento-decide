@@ -11,6 +11,10 @@ import type {
   ProposalSearchItem,
   ProposalInput,
   Attachment,
+  UserRef,
+  CategoryRef,
+  StatusRef,
+  LocalizedText,
 } from "../../../shared/models.js"
 
 const router = express.Router()
@@ -327,9 +331,20 @@ router.get(
       const query = `
         SELECT
           p.id, p.title, p.description, p.vote_value, p.created_at,
-          c.labels ->> 'it' AS category_name, c.code AS category_code, c.colour AS category_colour,
-          u.username AS author_name,
-          s.labels ->> 'it' AS status_name, s.code AS status_code, s.colour AS status_colour,
+          
+          u.id AS author_id,
+          u.username AS author_username,
+          
+          c.id AS category_id,
+          c.labels AS category_labels,
+          c.code AS category_code, 
+          c.colour AS category_colour,
+          
+          s.id AS status_id,
+          s.labels AS status_labels, 
+          s.code AS status_code, 
+          s.colour AS status_colour,
+          
           ${selectIsFavourited}
         FROM proposals p
         LEFT JOIN categories c ON p.category_id = c.id
@@ -345,20 +360,46 @@ router.get(
         id: number
         title: string
         description: string
-        author_name: string
-        category_name: string | null
-        category_code: string
-        category_colour: string | null
-        status_name: string | null
-        status_code: string
-        status_colour: string | null
         vote_value: number
         created_at: Date
         is_favourited: boolean
+        
+        author_id: number
+        author_username: string
+
+        category_id: number | null
+        category_labels: LocalizedText
+        category_code: string
+        category_colour: string
+
+        status_id: number | null
+        status_labels: LocalizedText
+        status_code: string
+        status_colour: string
       }
 
       const items: ProposalSearchItem[] = result.rows.map((row) => {
         const r = row as ProposalRow
+        
+        const authorRef: UserRef = {
+            id: r.author_id,
+            username: r.author_username,
+        }
+
+        const categoryRef: CategoryRef | undefined = r.category_id ? {
+            id: r.category_id,
+            code: r.category_code,
+            labels: r.category_labels,
+            colour: r.category_colour
+        } as CategoryRef : undefined
+
+        const statusRef: StatusRef | undefined = r.status_id ? {
+            id: r.status_id,
+            code: r.status_code,
+            labels: r.status_labels,
+            colour: r.status_colour
+        } as StatusRef : undefined
+
         return {
           type: "proposta",
           id: r.id,
@@ -366,13 +407,13 @@ router.get(
           description: r.description,
           voteValue: Number(r.vote_value),
           date: new Date(r.created_at).toLocaleDateString("it-IT"),
-          timestamp: new Date(r.created_at).toISOString(),
+          createdAt: new Date(r.created_at).toISOString(),
           isFavourited: Boolean(r.is_favourited),
-          ...(r.author_name ? { author: r.author_name } : {}),
-          category: r.category_name ?? r.category_code,
-          ...(r.category_colour ? { categoryColour: r.category_colour } : {}),
-          status: r.status_name ?? r.status_code,
-          ...(r.status_colour ? { statusColour: r.status_colour } : {}),
+          
+          author: authorRef,
+          
+          ...(categoryRef ? { category: categoryRef } : {}),
+          ...(statusRef ? { status: statusRef } : {})
         }
       })
 
@@ -463,13 +504,13 @@ router.get(
         category: {
           id: r.category_id,
           code: r.category_code,
-          ...(r.category_name ? { label: r.category_name } : {}),
+          ...(r.category_name ? { labels: r.category_name } : {}),
           ...(r.category_colour ? { colour: r.category_colour } : {})
         },
         status: {
           id: r.status_id,
           code: r.status_code,
-          ...(r.status_name ? { label: r.status_name } : {}),
+          ...(r.status_name ? { labels: r.status_name } : {}),
           ...(r.status_colour ? { colour: r.status_colour } : {})
         },
         ...(attachments.length > 0 ? { attachments } : {})
@@ -517,6 +558,10 @@ router.post(
       const { vote } = req.body
 
       if (vote !== 1 && vote !== -1) return res.status(400).json({ error: "Invalid vote" })
+
+      const check = await pool.query("SELECT status_id FROM proposals WHERE id = $1", [proposalId])
+      if (check.rows.length === 0) return res.status(404).json({ error: "Non trovato" })
+      if (check.rows[0].status_code === 'bozza') return res.status(400).json({ error: "Non puoi votare una bozza" })
 
       await client.query("BEGIN")
 

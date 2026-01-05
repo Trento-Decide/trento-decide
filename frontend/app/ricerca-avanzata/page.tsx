@@ -14,9 +14,11 @@ export default async function AdvancedSearchPage() {
   const statuses = statusesRes.status === 'fulfilled' ? statusesRes.value.data : []
 
   return (
-    <AdvancedSearchForm 
-      categories={categories} 
-      statuses={statuses} 
-    />
+    <div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
+       <AdvancedSearchForm 
+         categories={categories} 
+         statuses={statuses} 
+       />
+    </div>
   )
 }
