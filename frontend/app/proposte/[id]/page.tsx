@@ -356,8 +356,8 @@ export default function ProposalDetail() {
                     border: '1px solid #dc3545'
                   }}
                 >
-                  <svg className="icon icon-sm me-1" style={{ fill: isFavourited ? 'white' : 'none', stroke: isFavourited ? 'white' : 'currentColor', strokeWidth: 2 }}>
-                    <use href={`/svg/sprites.svg#${isFavourited ? 'it-heart-full' : 'it-heart'}`}></use>
+                  <svg className="icon icon-sm" style={{ width: 24, height: 24 }}>
+                    <use href={`/svg/custom.svg#${isFavourited ? 'heart-filled' : 'heart'}`}></use>
                   </svg>
                   {isFavourited ? "Rimuovi dai Preferiti" : "Aggiungi ai Preferiti"}
                 </button>
