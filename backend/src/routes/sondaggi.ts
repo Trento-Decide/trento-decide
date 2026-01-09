@@ -121,7 +121,7 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
           category: {
             id: p.category_id as ID,
             code: p.category_code ?? "unknown",
-            ...(p.category_label ? { label: p.category_label } : {}),
+            ...(p.category_label ? { labels: p.category_label } : {}),
             ...(p.category_color ? { colour: p.category_color } : {})
           }
       } : {}),

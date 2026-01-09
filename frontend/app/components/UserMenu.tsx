@@ -235,7 +235,7 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
           )}
         </div>
       ) : (
-        <Link className="d-flex align-items-center gap-2 fw-normal hover-underline" href="/accedi">
+        <Link className="d-flex align-items-center gap-2 fw-bold hover-underline" href="/accedi">
           <svg className="icon" style={{ width: 22, height: 22, fill: "currentColor" }} aria-hidden="true"><use href="/svg/sprites.svg#it-user"></use></svg>
           {!mobileMode && <span>Accedi</span>}
         </Link>

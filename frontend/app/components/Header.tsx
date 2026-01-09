@@ -9,10 +9,10 @@ import UserMenu from "@/app/components/UserMenu"
 import SearchBox from "@/app/components/SearchBox"
 
 const NAV_LINKS = [
-  { href: "/popolari", label: "Popolari", bold: true },
-  { href: "/novita", label: "Novità" },
+  { href: "/proposte?sortBy=votes&sortOrder=desc", label: "Popolari", bold: true },
   { href: "/proposte", label: "Proposte" },
-  { href: "/proposte/editor", label: "Crea proposta" },
+  { href: "/proposte/nuova", label: "Crea proposta" },
+  { href: "/sondaggi", label: "Sondaggi" },
   { href: "/regolamento", label: "Regolamento" },
 ]
 
@@ -28,8 +28,6 @@ export default function Header() {
     if (pathname === href) return true
     if (!pathname.startsWith(`${href}/`)) return false
 
-    // If the next path segment corresponds to another top-level nav link (e.g. "/proposte/editor"),
-    // prefer that child link and don't mark the parent as active.
     const nextSegment = pathname.slice(href.length + 1).split("/")[0]
     if (NAV_LINKS.some((l) => l.href === `${href}/${nextSegment}`)) return false
 
@@ -46,31 +44,44 @@ export default function Header() {
   return (
     <header className="shadow-none" style={{ backgroundColor: theme.primary, position: 'relative' }}>
       <style jsx>{`
-        :global(.nav-link-minimal) {
-          text-decoration: none !important;
-          color: ${theme.text.light} !important;
-          padding: 5px 0;
-          margin: 0;
+        .comune-link {
+          color: #ffffff !important;
+          text-decoration: none;
           font-weight: 500;
-          font-size: 0.95rem;
-          border-bottom: 2px solid transparent;
-          transition: all 0.2s ease-in-out;
+          transition: none; 
+          opacity: 0.9;
+        }
+        .comune-link:hover {
+          text-decoration: underline;
+          opacity: 1;
         }
 
-        /* Use border-bottom as the single visual underline to avoid double lines */
+        :global(.nav-link-minimal) {
+          text-decoration: none !important;
+          color: #ffffff !important;
+          padding: 12px 0;
+          margin: 0;
+          font-weight: 500;
+          font-size: 1rem;
+          border-bottom: 3px solid transparent;
+          opacity: 0.85;
+          transition: opacity 0.2s;
+        }
+
         :global(.nav-link-minimal:hover) {
-          color: ${theme.text.light} !important;
-          border-bottom-color: ${theme.text.light};
+          color: #ffffff !important;
+          opacity: 1;
         }
 
         :global(.nav-link-minimal.active) {
-          color: ${theme.text.light} !important;
+          color: #ffffff !important;
+          opacity: 1;
           font-weight: 700;
-          border-bottom-color: ${theme.text.light};
+          border-bottom-color: #ffffff;
         }
 
         .hamburger-lines line { stroke: #e0e0e0; stroke-width: 1.5; }
-        .hamburger-btn:hover .hamburger-lines line { stroke: ${theme.text.light}; }
+        .hamburger-btn:hover .hamburger-lines line { stroke: #ffffff; }
 
         .mobile-search-input {
           color: ${theme.text.dark} !important; background-color: #ffffff !important; border: 1px solid #ced4da !important;
@@ -85,7 +96,7 @@ export default function Header() {
         <div className="container">
           <div className="d-flex justify-content-between align-items-center py-2">
             <a
-              className="text-white text-decoration-none nav-link-minimal"
+              className="comune-link"
               href="https://www.comune.trento.it/"
               target="_blank"
               rel="noopener noreferrer"
@@ -98,9 +109,9 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="container py-2 py-lg-3">
+      <div className="container py-3 py-lg-5">
         <div className="row align-items-center">
-          <div className="col-8 col-lg-4 d-flex align-items-center gap-3">
+          <div className="col-8 col-lg-5 d-flex align-items-center gap-3">
              <button
               className="btn btn-link p-0 d-lg-none border-0 hamburger-btn"
               type="button"
@@ -124,13 +135,13 @@ export default function Header() {
                 )}
               </svg>
             </button>
-            <Link href="/" className="d-flex align-items-center text-decoration-none text-white gap-2" aria-label="Trento Decide - Home">
-              <svg className="icon" style={{ width: 32, height: 32, fill: "currentColor" }} aria-hidden="true"><use href="/svg/sprites.svg#it-pa"></use></svg>
-              <span className="fw-semibold fs-4 lh-1">Trento Decide</span>
+            <Link href="/" className="d-flex align-items-center text-decoration-none text-white gap-3" aria-label="Trento Decide - Home">
+              <svg className="icon" style={{ width: 42, height: 42, fill: "currentColor" }} aria-hidden="true"><use href="/svg/sprites.svg#it-pa"></use></svg>
+              <span className="fw-bold fs-3 lh-1" style={{ letterSpacing: '-0.5px' }}>Trento Decide</span>
             </Link>
           </div>
 
-          <div className="d-none d-lg-flex col-lg-8 justify-content-end">
+          <div className="d-none d-lg-flex col-lg-7 justify-content-end">
             <SearchBox />
           </div>
 
@@ -140,9 +151,9 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="d-none d-lg-block border-top border-white border-opacity-10">
+      <div className="d-none d-lg-block border-top border-white border-opacity-25">
         <div className="container">
-          <nav className="d-flex align-items-center py-1 gap-4" aria-label="Navigazione principale">
+          <nav className="d-flex align-items-center gap-5" aria-label="Navigazione principale">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}

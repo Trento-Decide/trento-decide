@@ -1,214 +1,311 @@
-import express, { type Request, type Response } from "express"
-import { pool } from "../database.js"
-import { conditionalAuthenticateToken } from "../middleware/authMiddleware.js"
+import express, { type Request, type Response } from "express";
+import { pool } from "../database.js";
+import { conditionalAuthenticateToken } from "../middleware/authMiddleware.js";
 import type {
   GlobalSearchItem,
-  GlobalSearchFilters,
+  GlobalFilters,
   ProposalSearchItem,
   PollSearchItem,
-} from "../../../shared/models.js"
+  StatusRef,
+  CategoryRef,
+  UserRef,
+} from "../../../shared/models.js";
 
-const router = express.Router()
+type RequestWithUser = Request & {
+  user?: {
+    id: number;
+  };
+};
+
+const router = express.Router();
 
 function parseBoolean(value: unknown): boolean | undefined {
-  if (value === undefined) return undefined
-  if (value === "true" || value === true) return true
-  if (value === "false" || value === false) return false
-  return undefined
+  if (value === undefined) return undefined;
+  if (value === "true" || value === true) return true;
+  if (value === "false" || value === false) return false;
+  return undefined;
 }
 
 function parseNumber(value: unknown): number | undefined {
-  if (value === undefined) return undefined
-  const n = Number(value)
-  return Number.isFinite(n) ? n : undefined
+  if (value === undefined) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 function parseDate(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined
-  const d = new Date(value)
-  return !isNaN(d.getTime()) ? value : undefined
+  if (typeof value !== "string") return undefined;
+  const d = new Date(value);
+  return !isNaN(d.getTime()) ? value : undefined;
 }
 
-function parseFilters(q: Record<string, unknown>): GlobalSearchFilters {
-  const qString = typeof q.q === "string" ? q.q : ""
-  const titlesOnly = parseBoolean(q.titlesOnly)
-  const authorUsername = typeof q.author === "string" ? q.author : undefined
-  const typeVal =
-    typeof q.type === "string" && ["all", "proposta", "sondaggio"].includes(q.type)
-      ? (q.type as "all" | "proposta" | "sondaggio")
-      : "all"
-  const dateFrom = parseDate(q.dateFrom)
-  const dateTo = parseDate(q.dateTo)
-  const categoryCode = typeof q.category === "string" ? q.category : undefined
-  const statusCode = typeof q.status === "string" ? q.status : undefined
-  const minVotes = parseNumber(q.minVotes)
-  const maxVotes = parseNumber(q.maxVotes)
-  const sortBy =
-    typeof q.sortBy === "string" && ["date", "votes", "title"].includes(q.sortBy)
-      ? (q.sortBy as "date" | "votes" | "title")
-      : undefined
-  const sortOrder =
-    typeof q.sortOrder === "string" && ["asc", "desc"].includes(q.sortOrder)
-      ? (q.sortOrder as "asc" | "desc")
-      : undefined
+function parseFilters(q: Record<string, unknown>): GlobalFilters {
+  const filters: GlobalFilters = {};
 
-  return {
-    q: qString,
-    type: typeVal,
-    ...(titlesOnly !== undefined ? { titlesOnly } : {}),
-    ...(authorUsername ? { authorUsername } : {}),
-    ...(categoryCode ? { categoryCode } : {}),
-    ...(statusCode ? { statusCode } : {}),
-    ...(dateFrom ? { dateFrom } : {}),
-    ...(dateTo ? { dateTo } : {}),
-    ...(minVotes !== undefined ? { minVotes } : {}),
-    ...(maxVotes !== undefined ? { maxVotes } : {}),
-    ...(sortBy ? { sortBy } : {}),
-    ...(sortOrder ? { sortOrder } : {}),
+  if (typeof q.q === "string" && q.q.trim() !== "") {
+    filters.q = q.q;
   }
+
+  const titlesOnly = parseBoolean(q.titlesOnly);
+  if (titlesOnly !== undefined) {
+    filters.titlesOnly = titlesOnly;
+  }
+
+  if (typeof q.authorUsername === "string") {
+    filters.authorUsername = q.authorUsername;
+  }
+
+  if (typeof q.categoryCode === "string") {
+    filters.categoryCode = q.categoryCode;
+  }
+
+  const dateFrom = parseDate(q.dateFrom);
+  if (dateFrom) {
+    filters.dateFrom = dateFrom;
+  }
+
+  const dateTo = parseDate(q.dateTo);
+  if (dateTo) {
+    filters.dateTo = dateTo;
+  }
+
+  if (typeof q.type === "string" && ["all", "proposta", "sondaggio"].includes(q.type)) {
+    filters.type = q.type as "all" | "proposta" | "sondaggio";
+  } else {
+    filters.type = "all";
+  }
+
+  const limit = parseNumber(q.limit);
+  if (limit !== undefined) {
+    filters.limit = limit;
+  }
+
+  if (typeof q.sortBy === "string" && ["date", "votes", "title"].includes(q.sortBy)) {
+    filters.sortBy = q.sortBy as "date" | "votes" | "title";
+  } else {
+    filters.sortBy = "date";
+  }
+
+  if (typeof q.sortOrder === "string" && ["asc", "desc"].includes(q.sortOrder)) {
+    filters.sortOrder = q.sortOrder as "asc" | "desc";
+  } else {
+    filters.sortOrder = "desc";
+  }
+
+  if (typeof q.statusCode === "string") {
+    filters.statusCode = q.statusCode;
+  }
+
+  const minVotes = parseNumber(q.minVotes);
+  if (minVotes !== undefined) {
+    filters.minVotes = minVotes;
+  }
+
+  const maxVotes = parseNumber(q.maxVotes);
+  if (maxVotes !== undefined) {
+    filters.maxVotes = maxVotes;
+  }
+
+  const isActive = parseBoolean(q.isActive);
+  if (isActive !== undefined) {
+      filters.isActive = isActive;
+  }
+
+  return filters;
 }
 
 router.get(
   "/",
   conditionalAuthenticateToken,
-  async (req: Request, res: Response<{ data: GlobalSearchItem[] } | { error: string; details?: string }>) => {
+  async (req: Request, res: Response<{ data: GlobalSearchItem[] } | { error: string }>) => {
     try {
-      const filters = parseFilters(req.query as Record<string, unknown>)
-      const values: unknown[] = []
+      const filters = parseFilters(req.query as Record<string, unknown>);
+      const currentUserId = (req as unknown as RequestWithUser).user?.id;
       
+      const values: unknown[] = [];
       const addParam = (val: unknown) => {
-        values.push(val)
-        return `$${values.length}`
-      }
+        values.push(val);
+        return `$${values.length}`;
+      };
 
-      const propConditions: string[] = []
-      if (filters.q && filters.q.length > 0) {
-        const idx = addParam(`%${filters.q}%`)
-        if (filters.titlesOnly) propConditions.push(`p.title ILIKE ${idx}`)
-        else propConditions.push(`(p.title ILIKE ${idx} OR p.description ILIKE ${idx})`)
-      }
-      if (filters.authorUsername) {
-        const idx = addParam(`%${filters.authorUsername}%`)
-        propConditions.push(`u.username ILIKE ${idx}`)
-      }
-      if (filters.categoryCode) {
-        const idx = addParam(filters.categoryCode)
-        propConditions.push(`c.code = ${idx}`)
-      }
-      if (filters.statusCode) {
-        const idx = addParam(filters.statusCode)
-        propConditions.push(`s.code = ${idx}`)
-      }
-      if (filters.dateFrom) {
-        const idx = addParam(filters.dateFrom)
-        propConditions.push(`p.created_at >= ${idx}::timestamptz`)
-      }
-      if (filters.dateTo) {
-        const idx = addParam(filters.dateTo)
-        propConditions.push(`p.created_at < (${idx}::timestamptz + INTERVAL '1 day')`)
-      }
-      if (filters.minVotes !== undefined) {
-        const idx = addParam(filters.minVotes)
-        propConditions.push(`p.vote_value >= ${idx}`)
-      }
-      if (filters.maxVotes !== undefined) {
-        const idx = addParam(filters.maxVotes)
-        propConditions.push(`p.vote_value <= ${idx}`)
-      }
+      const propParts: string[] = [];
+      
+      const skipProposalsDueToFilters = filters.isActive !== undefined; 
 
-      const pollConditions: string[] = []
-      let skipPolls = false
-      if (filters.statusCode || filters.minVotes !== undefined || filters.maxVotes !== undefined) {
-        skipPolls = true
-      }
+      if (!skipProposalsDueToFilters && (filters.type === "all" || filters.type === "proposta")) {
+        const where: string[] = ["1=1"];
 
-      if (!skipPolls) {
-        if (filters.q && filters.q.length > 0) {
-          const idx = addParam(`%${filters.q}%`)
-          if (filters.titlesOnly) pollConditions.push(`pl.title ILIKE ${idx}`)
-          else pollConditions.push(`(pl.title ILIKE ${idx} OR pl.description ILIKE ${idx})`)
+        if (filters.q) {
+          const idx = addParam(`%${filters.q}%`);
+          if (filters.titlesOnly) {
+            where.push(`p.title ILIKE ${idx}`);
+          } else {
+            where.push(`(p.title ILIKE ${idx} OR p.description ILIKE ${idx})`);
+          }
         }
+
         if (filters.authorUsername) {
-          const idx = addParam(`%${filters.authorUsername}%`)
-          pollConditions.push(`u.username ILIKE ${idx}`)
+          const idx = addParam(`%${filters.authorUsername}%`);
+          where.push(`u.username ILIKE ${idx}`);
         }
+
         if (filters.categoryCode) {
-          const idx = addParam(filters.categoryCode)
-          pollConditions.push(`c.code = ${idx}`)
+          const idx = addParam(filters.categoryCode);
+          where.push(`c.code = ${idx}`);
         }
+
+        if (filters.statusCode) {
+           const idx = addParam(filters.statusCode);
+           where.push(`s.code = ${idx}`);
+        }
+
         if (filters.dateFrom) {
-          const idx = addParam(filters.dateFrom)
-          pollConditions.push(`pl.created_at >= ${idx}::timestamptz`)
+          const idx = addParam(filters.dateFrom);
+          where.push(`p.created_at >= ${idx}::timestamptz`);
         }
         if (filters.dateTo) {
-          const idx = addParam(filters.dateTo)
-          pollConditions.push(`pl.created_at < (${idx}::timestamptz + INTERVAL '1 day')`)
+          const idx = addParam(filters.dateTo);
+          where.push(`p.created_at < (${idx}::timestamptz + INTERVAL '1 day')`);
         }
-      }
+        
+        if (filters.minVotes !== undefined) {
+           const idx = addParam(filters.minVotes);
+           where.push(`p.vote_value >= ${idx}`);
+        }
+        if (filters.maxVotes !== undefined) {
+           const idx = addParam(filters.maxVotes);
+           where.push(`p.vote_value <= ${idx}`);
+        }
 
-      const parts: string[] = []
+        const favColumn = currentUserId 
+            ? `EXISTS(SELECT 1 FROM favourites f WHERE f.proposal_id = p.id AND f.user_id = ${addParam(currentUserId)})`
+            : `false`;
 
-      if (filters.type === "all" || filters.type === "proposta") {
-        const whereProp = propConditions.length > 0 ? "WHERE " + propConditions.join(" AND ") : ""
-        parts.push(`
+        propParts.push(`
           SELECT 
             'proposta' as item_type,
-            p.id, p.title, p.description, p.created_at, p.vote_value,
-            u.username AS author_name,
-            c.labels ->> 'it' AS category_label_it,
+            p.id, 
+            p.title, 
+            p.description, 
+            p.created_at, 
+            p.vote_value, 
+            -- Author Info
+            u.id as author_id,
+            u.username AS author_username,
+            -- Category Info
+            c.id AS category_id,
+            c.labels AS category_labels,
             c.code AS category_code,
             c.colour AS category_colour,
-            s.labels ->> 'it' AS status_label_it,
+            -- Status Info
+            s.id AS status_id,
+            s.labels AS status_labels,
             s.code AS status_code,
-            s.colour AS status_colour
+            s.colour AS status_colour,
+            -- Poll Specifics (Null for proposals)
+            NULL::boolean as poll_is_active,
+            NULL::timestamptz as poll_expires_at,
+            -- Favourites
+            ${favColumn} as is_favourited
           FROM proposals p
           JOIN users u ON p.author_id = u.id
-          JOIN categories c ON p.category_id = c.id
+          LEFT JOIN categories c ON p.category_id = c.id
           JOIN statuses s ON p.status_id = s.id
-          ${whereProp}
-        `)
+          WHERE ${where.join(" AND ")}
+        `);
       }
 
-      if (!skipPolls && (filters.type === "all" || filters.type === "sondaggio")) {
-        const wherePoll = pollConditions.length > 0 ? "WHERE " + pollConditions.join(" AND ") : ""
-        parts.push(`
+      const pollParts: string[] = [];
+
+      const skipPollsDueToFilters = filters.statusCode !== undefined || filters.minVotes !== undefined || filters.maxVotes !== undefined;
+
+      if (!skipPollsDueToFilters && (filters.type === "all" || filters.type === "sondaggio")) {
+        const where: string[] = ["1=1"];
+
+        if (filters.q) {
+          const idx = addParam(`%${filters.q}%`);
+          if (filters.titlesOnly) {
+            where.push(`pl.title ILIKE ${idx}`);
+          } else {
+            where.push(`(pl.title ILIKE ${idx} OR pl.description ILIKE ${idx})`);
+          }
+        }
+
+        if (filters.authorUsername) {
+          const idx = addParam(`%${filters.authorUsername}%`);
+          where.push(`u.username ILIKE ${idx}`);
+        }
+
+        if (filters.categoryCode) {
+          const idx = addParam(filters.categoryCode);
+          where.push(`c.code = ${idx}`);
+        }
+
+        if (filters.dateFrom) {
+          const idx = addParam(filters.dateFrom);
+          where.push(`pl.created_at >= ${idx}::timestamptz`);
+        }
+        if (filters.dateTo) {
+          const idx = addParam(filters.dateTo);
+          where.push(`pl.created_at < (${idx}::timestamptz + INTERVAL '1 day')`);
+        }
+
+        pollParts.push(`
           SELECT 
             'sondaggio' as item_type,
-            pl.id, pl.title, pl.description, pl.created_at,
-            NULL::integer as vote_value,
-            u.username AS author_name,
-            c.labels ->> 'it' AS category_label_it,
+            pl.id, 
+            pl.title, 
+            pl.description, 
+            pl.created_at,
+            NULL::integer as vote_value, 
+            -- Author Info
+            u.id as author_id,
+            u.username AS author_username,
+            -- Category Info
+            c.id AS category_id,
+            c.labels AS category_labels,
             c.code AS category_code,
             c.colour AS category_colour, 
-            NULL as status_label_it,
+            -- Status Info (Null for polls)
+            NULL AS status_id,
+            NULL::jsonb as status_labels,
             NULL as status_code,
-            NULL as status_colour
+            NULL as status_colour,
+            -- Poll Specifics
+            pl.is_active as poll_is_active,
+            pl.expires_at as poll_expires_at,
+            -- Favourites
+            false as is_favourited
           FROM polls pl
           JOIN users u ON pl.created_by = u.id
           LEFT JOIN categories c ON pl.category_id = c.id
-          ${wherePoll}
-        `)
+          WHERE ${where.join(" AND ")}
+        `);
       }
 
-      if (parts.length === 0) return res.json({ data: [] })
+      const allQueries = [...propParts, ...pollParts];
 
-      const sortBy = filters.sortBy ?? "date"
-      const dir = filters.sortOrder === "asc" ? "ASC" : "DESC"
-      let finalOrderBy = `ORDER BY created_at ${dir}`
-      if (sortBy === "title") finalOrderBy = `ORDER BY title ${dir}`
-      if (sortBy === "votes") finalOrderBy = `ORDER BY vote_value ${dir} NULLS LAST`
+      if (allQueries.length === 0) {
+        return res.json({ data: [] });
+      }
 
-      const limParam = (req.query as Record<string, unknown>).limit
-      const lim = parseNumber(limParam) ?? 50
-      const safeLimit = Math.max(1, Math.min(lim, 200))
+      const dir = filters.sortOrder === "asc" ? "ASC" : "DESC";
+      let orderByClause = `ORDER BY created_at ${dir}`;
+      
+      if (filters.sortBy === "title") {
+        orderByClause = `ORDER BY title ${dir}`;
+      } else if (filters.sortBy === "votes") {
+        orderByClause = `ORDER BY vote_value ${dir} NULLS LAST`;
+      }
+
+      const safeLimit = Math.min(Math.abs(filters.limit || 50), 100);
 
       const finalQuery = `
-        ${parts.join(" UNION ALL ")}
-        ${finalOrderBy}
+        ${allQueries.join(" UNION ALL ")}
+        ${orderByClause}
         LIMIT ${safeLimit}
-      `
+      `;
 
-      const result = await pool.query(finalQuery, values)
+      const result = await pool.query(finalQuery, values);
 
       interface SearchRow {
         item_type: "proposta" | "sondaggio";
@@ -217,67 +314,89 @@ router.get(
         description: string;
         created_at: Date;
         vote_value: number | null;
-        author_name: string | null;
-        category_label_it: string | null;
+        
+        author_id: number;
+        author_username: string;
+
+        category_id: number | null;
+        category_labels: Record<string, string> | null;
         category_code: string | null;
         category_colour: string | null;
-        status_label_it: string | null;
+
+        status_id: number | null;
+        status_labels: Record<string, string> | null;
         status_code: string | null;
         status_colour: string | null;
+
+        poll_is_active: boolean | null;
+        poll_expires_at: Date | null;
+        is_favourited: boolean;
       }
 
-      const items: GlobalSearchItem[] = result.rows.map((row) => {
-        const r = row as SearchRow
-        const type = r.item_type
+      const items: GlobalSearchItem[] = result.rows.map((row: SearchRow) => {
         
-        const categoryVal = r.category_label_it ?? r.category_code
-        const categoryColVal = r.category_colour
-        const authorVal = r.author_name
-        const statusVal = r.status_label_it ?? r.status_code
-        const statusColVal = r.status_colour
-        const voteVal = r.vote_value
+        const authorRef = {
+            id: row.author_id,
+            username: row.author_username,
+        } as UserRef;
 
-        const base = {
-          id: r.id,
-          title: r.title,
-          description: r.description,
-          date: new Date(r.created_at).toLocaleDateString("it-IT"),
-          timestamp: new Date(r.created_at).toISOString(),
-        }
+        const categoryRef: CategoryRef | undefined = row.category_id ? {
+            id: row.category_id,
+            code: row.category_code!,
+            labels: row.category_labels!,
+            colour: row.category_colour!
+        } as CategoryRef: undefined;
 
-        if (type === "proposta") {
-          const proposalItem: ProposalSearchItem = {
-            type: "proposta",
-            ...base,
-            ...(authorVal ? { author: authorVal } : {}),
-            ...(categoryVal ? { category: categoryVal } : {}),
-            ...(categoryColVal ? { categoryColour: categoryColVal } : {}),
-            ...(statusVal ? { status: statusVal } : {}),
-            ...(statusColVal ? { statusColour: statusColVal } : {}),
-            ...(voteVal !== null && voteVal !== undefined ? { voteValue: Number(voteVal) } : {}),
-          }
-          return proposalItem
+        const baseFields = {
+          id: row.id,
+          title: row.title,
+          description: row.description,
+          date: new Date(row.created_at).toLocaleDateString("it-IT"),
+          createdAt: new Date(row.created_at).toISOString(),
+          isFavourited: row.is_favourited
+        };
+
+        if (row.item_type === "proposta") {
+           const statusRef: StatusRef | undefined = row.status_code ? {
+               id: row.status_id!,
+               code: row.status_code,
+               labels: row.status_labels!,
+               colour: row.status_colour!
+           } as StatusRef : undefined;
+
+           const p: ProposalSearchItem = {
+             type: "proposta",
+             ...baseFields,
+             voteValue: row.vote_value !== null ? Number(row.vote_value) : 0,
+             author: authorRef,
+             ...(categoryRef ? { category: categoryRef } : {}),
+             ...(statusRef ? { status: statusRef } : {})
+           };
+           return p;
         } else {
-          const pollItem: PollSearchItem = {
-            type: "sondaggio",
-            ...base,
-            ...(authorVal ? { author: authorVal } : {}),
-            ...(categoryVal ? { category: categoryVal } : {}),
-            ...(categoryColVal ? { categoryColour: categoryColVal } : {}),
-          }
-          return pollItem
+           const isExpired = row.poll_expires_at ? new Date(row.poll_expires_at) < new Date() : false;
+           const isActive = (row.poll_is_active === true) && !isExpired;
+
+           const p: PollSearchItem = {
+             type: "sondaggio",
+             ...baseFields,
+             isActive: isActive,
+             timestamp: new Date(row.created_at).toISOString(),
+             author: authorRef,
+             ...(categoryRef ? { category: categoryRef } : {}),
+             ...(row.poll_expires_at ? { expiresAt: row.poll_expires_at.toISOString() } : {})
+           };
+           return p;
         }
-      })
+      });
 
-      res.json({ data: items })
+      res.json({ data: items });
+
     } catch (err) {
-      console.error("Search Error:", err)
-      res.status(500).json({
-        error: "Errore durante la ricerca",
-        details: err instanceof Error ? err.message : String(err),
-      })
+      console.error("Global Search Error:", err);
+      res.status(500).json({ error: "Errore interno durante la ricerca" });
     }
-  },
-)
+  }
+);
 
-export default router
+export default router;

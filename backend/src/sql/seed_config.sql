@@ -38,7 +38,7 @@ VALUES
         {"value":"nuova_costruzione","label":{"it":"Nuova costruzione"}},
         {"value":"manutenzione","label":{"it":"Manutenzione straordinaria"}}
       ]},
-      {"kind":"map","key":"area_interesse","label":{"it":"Area interessata"},"required":true},
+      {"kind":"map","key":"area_interesse","label":{"it":"Perimetro Area"},"required":true,"drawMode":"polygon"},
       {"kind":"text","key":"dati_catastali","label":{"it":"Riferimenti Catastali (Foglio/Particella)"},"required":false},
       {"kind":"file","key":"planimetria","label":{"it":"Planimetria o Bozza"},"required":false,"accept":["application/pdf"],"multiple":false,"maxFiles":1,"maxSizeMB":20}
     ]'::jsonb
@@ -55,10 +55,11 @@ VALUES
       {"kind":"multiselect","key":"tematiche","label":{"it":"Tematiche"},"required":true,"options":[
          {"value":"alberi","label":{"it":"Piantumazione alberi"}},
          {"value":"rifiuti","label":{"it":"Gestione rifiuti"}},
-         {"value":"energia","label":{"it":"Energia rinnovabile"}}
+         {"value":"energia","label":{"it":"Energia rinnovabile"}},
+         {"value":"acqua","label":{"it":"Risorse idriche"}}
       ]},
-      {"kind":"map","key":"area","label":{"it":"Posizione intervento"},"required":false},
-      {"kind":"text","key":"impatto","label":{"it":"Impatto previsto"},"required":true,"helpText":{"it":"Descrivi i benefici ambientali"}},
+      {"kind":"map","key":"area","label":{"it":"Area Verde Interessata"},"required":false,"drawMode":"polygon"},
+      {"kind":"text","key":"impatto","label":{"it":"Impatto previsto"},"required":true,"helpText":{"it":"Descrivi i benefici ambientali attesi"}},
       {"kind":"file","key":"relazione_pdf","label":{"it":"Relazione Tecnica"},"required":false,"accept":["application/pdf"],"multiple":false,"maxFiles":1,"maxSizeMB":10}
     ]'::jsonb
   ),
@@ -78,7 +79,8 @@ VALUES
       {"kind":"select","key":"tipologia","label":{"it":"Problematica"},"required":true,"options":[
         {"value":"illuminazione","label":{"it":"Illuminazione scarsa/assente"}},
         {"value":"vandalismo","label":{"it":"Atti vandalici"}},
-        {"value":"degrado","label":{"it":"Degrado urbano"}}
+        {"value":"degrado","label":{"it":"Degrado urbano"}},
+        {"value":"traffico","label":{"it":"Sicurezza stradale"}}
       ]},
       {"kind":"text","key":"descrizione_accaduto","label":{"it":"Dettagli segnalazione"},"required":true},
       {"kind":"map","key":"luogo","label":{"it":"Luogo esatto"},"required":true},
@@ -98,7 +100,8 @@ VALUES
       {"kind":"select","key":"location","label":{"it":"Spazio richiesto"},"required":false,"options":[
         {"value":"teatro_comunale","label":{"it":"Teatro Comunale"}},
         {"value":"biblioteca","label":{"it":"Biblioteca Civica"}},
-        {"value":"piazza","label":{"it":"Piazza all aperto"}}
+        {"value":"piazza","label":{"it":"Piazza all aperto"}},
+        {"value":"altro","label":{"it":"Altro spazio"}}
       ]},
       {"kind":"boolean","key":"richiesta_patrocinio","label":{"it":"Richiesta patrocinio gratuito?"},"required":false},
       {"kind":"file","key":"programma","label":{"it":"Programma dettagliato"},"required":true,"accept":["application/pdf"],"multiple":false,"maxFiles":1,"maxSizeMB":5}
@@ -115,7 +118,8 @@ VALUES
       {"kind":"select","key":"target_scuola","label":{"it":"Rivolto a"},"required":true,"options":[
         {"value":"nido","label":{"it":"Asilo Nido"}},
         {"value":"primaria","label":{"it":"Scuola Primaria"}},
-        {"value":"secondaria","label":{"it":"Scuola Secondaria"}}
+        {"value":"secondaria","label":{"it":"Scuola Secondaria"}},
+        {"value":"adulti","label":{"it":"Educazione Adulti"}}
       ]},
       {"kind":"number","key":"num_studenti","label":{"it":"Numero studenti coinvolti"},"min":1,"step":1},
       {"kind":"text","key":"nome_istituto","label":{"it":"Nome Istituto (se applicabile)"},"required":false},
@@ -135,7 +139,8 @@ VALUES
         {"value":"iot","label":{"it":"IoT / Sensori"}},
         {"value":"app","label":{"it":"App / Web"}},
         {"value":"connettivita","label":{"it":"Wi-Fi / Fibra"}},
-        {"value":"dati","label":{"it":"Open Data"}}
+        {"value":"dati","label":{"it":"Open Data"}},
+        {"value":"ai","label":{"it":"Intelligenza Artificiale"}}
       ]},
       {"kind":"boolean","key":"opensource","label":{"it":"Il progetto è Open Source?"},"required":true},
       {"kind":"text","key":"infrastruttura","label":{"it":"Requisiti infrastrutturali"},"required":false},
@@ -173,7 +178,8 @@ VALUES
         {"value":"anziani","label":{"it":"Anziani"}},
         {"value":"famiglie","label":{"it":"Famiglie in difficoltà"}},
         {"value":"disabili","label":{"it":"Persone con disabilità"}},
-        {"value":"giovani","label":{"it":"Giovani"}}
+        {"value":"giovani","label":{"it":"Giovani"}},
+        {"value":"immigrati","label":{"it":"Immigrati"}}
       ]},
       {"kind":"boolean","key":"collaborazione_associazioni","label":{"it":"In collaborazione con associazioni?"}},
       {"kind":"text","key":"nome_associazione","label":{"it":"Nome Associazione"},"required":false},
@@ -191,7 +197,8 @@ VALUES
       {"kind":"select","key":"tipo_impianto","label":{"it":"Tipo Impianto"},"required":true,"options":[
         {"value":"palestra","label":{"it":"Palestra coperta"}},
         {"value":"campo_aperto","label":{"it":"Campo all aperto"}},
-        {"value":"piscina","label":{"it":"Piscina"}}
+        {"value":"piscina","label":{"it":"Piscina"}},
+        {"value":"skatepark","label":{"it":"Skate Park"}}
       ]},
       {"kind":"text","key":"sport_principale","label":{"it":"Disciplina Sportiva"},"required":true},
       {"kind":"boolean","key":"omologazione","label":{"it":"Richiede omologazione federale?"},"required":false},
@@ -204,7 +211,7 @@ SET labels = EXCLUDED.labels,
     colour = EXCLUDED.colour,
     form_schema = EXCLUDED.form_schema;
 
--- non definitivi solo per testing
+-- 4. TIPI NOTIFICA
 INSERT INTO notification_types (code, labels)
 VALUES
   ('proposal_published', '{"it":"Proposta pubblicata"}'::jsonb),

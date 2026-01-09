@@ -1,304 +1,388 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-
-import { getCategories, getCategoryFormSchema } from "@/lib/api"
-import type { ProposalInput, CategoryFormSchema } from "../../../shared/models"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { 
+  createDraft, 
+  saveDraft, 
+  publishProposal, 
+  updateProposal, 
+  deleteProposal,
+  getCategoryFormSchema 
+} from "@/lib/api"
+import { Proposal, CategoryRef, FormField } from "../../../shared/models"
+import { buildAdditionalDataSchema } from "../../../shared/validation/forms"
+import DynamicField from "./DynamicField"
+import { theme } from "@/lib/theme"
 
 interface ProposalFormProps {
-  proposal: ProposalInput
-  onProposalChange: (proposal: ProposalInput) => void
+  initialData?: Proposal
+  categories: CategoryRef[]
 }
 
-export default function ProposalForm({ proposal, onProposalChange }: ProposalFormProps) {
-  const [categories, setCategories] = useState<Array<{ value: number; label: string }>>([])
-  const [categoriesError, setCategoriesError] = useState<string | null>(null)
-  const [formSchema, setFormSchema] = useState<CategoryFormSchema | null>(null)
+export default function ProposalForm({ initialData, categories }: ProposalFormProps) {
+  const router = useRouter()
+  const isEditing = !!initialData
+  const isDraft = initialData ? (initialData.status?.code === 'bozza' || !initialData.status) : true
 
-  const prevCategoryIdRef = useRef<number | undefined>(proposal.categoryId)
-  const proposalRef = useRef<ProposalInput>(proposal)
+  const [formData, setFormData] = useState({
+    title: initialData?.title || "",
+    description: initialData?.description || "",
+    categoryId: initialData?.category?.id || "", 
+  })
+  
+  const [dynamicData, setDynamicData] = useState<Record<string, unknown>>(initialData?.additionalData || {})
+  
+  const [dynamicSchema, setDynamicSchema] = useState<FormField[]>([])
+  const [loadingSchema, setLoadingSchema] = useState(false)
+  
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  
+  const [errors, setErrors] = useState<Record<string, string>>({})   
+  const [warnings, setWarnings] = useState<Record<string, string>>({}) 
+
+  const selectedCategory = categories.find(c => String(c.id) === String(formData.categoryId));
+  const activeColor = selectedCategory?.colour || theme.primary;
 
   useEffect(() => {
-    let mounted = true
-
-    getCategories()
-      .then((res) => {
-        if (!mounted) return
-        setCategories(res.data.map((c) => ({ value: c.id, label: c.labels?.it ?? c.code })))
-      })
-      .catch((err) => {
-        console.error(err)
-        if (mounted) setCategoriesError("Impossibile caricare le categorie")
-      })
-
-    return () => {
-      mounted = false
+    const catId = Number(formData.categoryId)
+    if (!catId) {
+      setDynamicSchema([])
+      return
     }
-  }, [])
+    if (initialData?.category?.id === catId && dynamicSchema.length > 0) return;
 
-  useEffect(() => {
-    proposalRef.current = proposal
-  }, [proposal])
-
-  useEffect(() => {
-    let mounted = true
-
-    const prevCategoryId = prevCategoryIdRef.current
-    const categoryChanged = prevCategoryId !== proposal.categoryId
-
-    if (!proposal.categoryId) {
-      setTimeout(() => {
-        if (!mounted) return
-        setFormSchema(null)
-        if (categoryChanged && proposalRef.current.additionalData && Object.keys(proposalRef.current.additionalData).length > 0) {
-          onProposalChange({ ...proposalRef.current, additionalData: {} })
+    const loadSchema = async () => {
+      setLoadingSchema(true)
+      try {
+        const res = await getCategoryFormSchema(catId)
+        const schema = Array.isArray(res) ? res : (res as { data: FormField[] }).data || []
+        setDynamicSchema(schema)
+        
+        if (!initialData || Number(initialData.category?.id) !== catId) {
+            setDynamicData({})
+        } else {
+            setDynamicData(initialData.additionalData || {})
         }
-      }, 0)
-      prevCategoryIdRef.current = proposal.categoryId
+      } catch (err) {
+        console.error("Errore schema", err)
+        setDynamicSchema([])
+      } finally {
+        setLoadingSchema(false)
+      }
+    }
+    loadSchema()
+
+  }, [formData.categoryId, initialData, dynamicSchema.length])
+
+  const handleDynamicChange = (key: string, value: unknown) => {
+    setDynamicData(prev => ({ ...prev, [key]: value }))
+  }
+
+  const formatFallbackLabel = (code: string) => {
+    if (!code) return "";
+    return code.toLowerCase().split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
+
+  const validateUI = () => {
+    const newErrors: Record<string, string> = {}
+    const newWarnings: Record<string, string> = {}
+    let isValidDraft = true
+    let isValidPublish = true
+
+    if (!formData.title || formData.title.trim().length < 5) {
+      newErrors.title = "Il titolo è obbligatorio (min 5 caratteri)."
+      isValidDraft = false
+    }
+    if (!formData.description || formData.description.trim().length < 10) {
+      newErrors.description = "La descrizione è obbligatoria (min 10 caratteri)."
+      isValidDraft = false
+    }
+    if (!formData.categoryId) {
+       newErrors.categoryId = "La categoria è obbligatoria."
+       isValidDraft = false
+    }
+
+    if (formData.categoryId && dynamicSchema.length > 0) {
+      const looseSchema = buildAdditionalDataSchema(dynamicSchema, true)
+      const looseResult = looseSchema.safeParse(dynamicData)
+      
+      if (!looseResult.success) {
+        looseResult.error.issues.forEach(issue => {
+           newErrors[String(issue.path[0])] = issue.message 
+        })
+        isValidDraft = false
+      }
+
+      const strictSchema = buildAdditionalDataSchema(dynamicSchema, false)
+      const strictResult = strictSchema.safeParse(dynamicData)
+
+      if (!strictResult.success) {
+        strictResult.error.issues.forEach(issue => {
+          const key = String(issue.path[0])
+          if (!newErrors[key]) {
+             newWarnings[key] = "Campo obbligatorio per la pubblicazione."
+             isValidPublish = false
+          }
+        })
+      }
+
+      dynamicSchema.filter(f => f.kind === 'file' && f.required).forEach(f => {
+         if (!dynamicData[f.key]) {
+            newWarnings[f.key] = "Allegato richiesto per la pubblicazione."
+            isValidPublish = false
+         }
+      })
+    }
+    
+    if (!isValidDraft) isValidPublish = false
+
+    setErrors(newErrors)
+    setWarnings(newWarnings)
+    return { isValidDraft, isValidPublish }
+  }
+
+  const handleAction = async (action: 'SAVE_DRAFT' | 'PUBLISH' | 'UPDATE') => {
+    setErrors({})
+    setWarnings({})
+    
+    const { isValidDraft, isValidPublish } = validateUI()
+
+    if (!isValidDraft) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
 
-    // Only clear additionalData if the category is changed by the user,
-    // not on the initial load.
-    if (categoryChanged &&  prevCategoryId !== undefined && proposalRef.current.additionalData && Object.keys(proposalRef.current.additionalData).length > 0) {
-      setTimeout(() => onProposalChange({ ...proposalRef.current, additionalData: {} }), 0)
+    if ((action === 'PUBLISH' || action === 'UPDATE') && !isValidPublish) {
+      alert("Per pubblicare devi compilare tutti i campi obbligatori (evidenziati in arancione).")
+      return
     }
 
-    getCategoryFormSchema(proposal.categoryId)
-      .then((res) => {
-        if (!mounted) return
-        setFormSchema(res.data)
-      })
-      .catch((err) => {
-        console.error(err)
-        if (mounted) setFormSchema(null)
-      })
+    try {
+      setSaving(true)
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        categoryId: Number(formData.categoryId),
+        additionalData: dynamicData
+      }
 
-    prevCategoryIdRef.current = proposal.categoryId
+      let targetId = initialData?.id
 
-    return () => {
-      mounted = false
+      if (!isEditing) {
+        const draft = await createDraft(payload)
+        targetId = draft.id
+      } else if (targetId && isDraft) {
+         await saveDraft(targetId, payload)
+      }
+
+      if (action === 'SAVE_DRAFT') {
+        router.push('/profilo#mie-proposte')
+        return
+      }
+
+      if (action === 'PUBLISH' && targetId) {
+        await publishProposal(targetId)
+        router.push('/proposte')
+        return
+      }
+
+      if (action === 'UPDATE' && targetId && !isDraft) {
+        await updateProposal(targetId, payload)
+        router.push(`/proposte/${targetId}`)
+        return
+      }
+
+    } catch (err) {
+      console.error(err)
+      const message = err instanceof Error ? err.message : "Errore sconosciuto";
+      alert("Errore salvataggio: " + message)
+    } finally {
+      setSaving(false)
     }
-  }, [proposal.categoryId, onProposalChange])
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => {
-    const { id, value } = e.target
-    onProposalChange({
-      ...proposal,
-      [id]: id === "categoryId" ? Number(value) : value,
-    })
   }
 
-  const handleAdditionalDataChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => {
-    const { id, type } = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    let value: unknown
+  const handleDelete = async () => {
+    if (!initialData?.id) return
+    if (!confirm("Sei sicuro di voler eliminare definitivamente questa bozza?")) return
 
-    if (type === "checkbox") {
-      value = (e.target as HTMLInputElement).checked
-    } else if ((e.target as HTMLSelectElement).multiple) {
-      const options = Array.from((e.target as HTMLSelectElement).options)
-      const selected = options.filter((o) => o.selected).map((o) => o.value)
-      value = selected.length === 0 ? undefined : selected
-    } else {
-      value = (e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value
+    try {
+        setDeleting(true)
+        await deleteProposal(initialData.id)
+        router.push('/profilo')
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Errore sconosciuto";
+        alert("Errore eliminazione: " + message)
+    } finally {
+        setDeleting(false)
     }
-
-    // coerce value based on form schema (numbers, dates, selects, multiselects)
-    const fieldDef = formSchema?.find((f) => f.key === id)
-    if (fieldDef?.kind === "number") {
-      if (value === "" || value === undefined) value = undefined
-      else {
-        const num = Number(value as unknown)
-        value = Number.isNaN(num) ? undefined : num
-      }
-    } else if (fieldDef?.kind === "date") {
-      if (value === "") value = undefined
-    } else if (fieldDef?.kind === "select") {
-      if (value === "") value = undefined
-    } else if (fieldDef?.kind === "multiselect") {
-      if (!Array.isArray(value)) {
-        value = value ? [String(value)] : undefined
-      }
-    }
-
-    onProposalChange({
-      ...proposal,
-      additionalData: {
-        ...(proposal.additionalData ?? {}),
-        [id]: value,
-      },
-    })
   }
 
-  if (categoriesError)
-    return <div className="alert alert-danger my-3">{categoriesError}</div>
+  const inputClass = `form-control form-control-lg bg-off-white custom-border`;
+  const selectClass = `form-select form-select-lg bg-off-white custom-border`;
 
   return (
-    <form>
+    <div className="card border border-secondary-subtle shadow-sm rounded-3 p-4 p-md-5 bg-white">
+      
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-5 pb-3 border-bottom">
+         <div>
+            <h2 className="h3 fw-bold mb-1 text-dark">
+                {isEditing ? (isDraft ? "Modifica Bozza" : "Modifica Proposta") : "Crea Nuova Proposta"}
+            </h2>
+            <p className="text-muted small mb-0">Compila i campi sottostanti per descrivere la tua idea.</p>
+         </div>
+      </div>
+
       <div className="mb-4">
-        <label htmlFor="title" className="form-label fw-bold">
-          Titolo
-        </label>
+        <label className="form-label fw-bold small text-muted text-uppercase ls-1">Titolo Proposta <span className="text-danger">*</span></label>
         <input
           type="text"
-          className="form-control bg-light"
-          id="title"
-          placeholder="Titolo della proposta..."
-          value={proposal.title || ""}
-          onChange={handleChange}
+          className={`${inputClass} ${errors.title ? 'border-danger' : ''}`}
+          style={errors.title ? { borderColor: 'var(--bs-danger)' } : {}}
+          placeholder="Es. Riqualificazione Parco Centrale..."
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          disabled={saving}
         />
+        {errors.title && <div className="text-danger small mt-1 fw-bold">{errors.title}</div>}
       </div>
 
       <div className="mb-4">
-        <label htmlFor="description" className="form-label fw-bold">
-          Descrizione
-        </label>
-        <textarea
-          className="form-control bg-light"
-          id="description"
-          rows={8}
-          placeholder="Descrivi la tua proposta in dettaglio..."
-          value={proposal.description || ""}
-          onChange={handleChange}
-        ></textarea>
-      </div>
-
-      <div className="mb-4">
-        <label htmlFor="categoryId" className="form-label fw-bold">
-          Categoria
-        </label>
+        <label className="form-label fw-bold small text-muted text-uppercase ls-1">Categoria <span className="text-danger">*</span></label>
         <select
-          className="form-select bg-light"
-          id="categoryId"
-          value={proposal.categoryId ?? ""}
-          onChange={handleChange}
+          className={`${selectClass} ${errors.categoryId ? 'border-danger' : ''}`}
+          style={errors.categoryId ? { borderColor: 'var(--bs-danger)' } : {}}
+          value={formData.categoryId}
+          onChange={(e) => {
+              setFormData({ ...formData, categoryId: e.target.value });
+              if (String(e.target.value) !== String(initialData?.category?.id)) {
+                 setDynamicData({}); 
+              }
+          }}
+          disabled={saving}
         >
-          {proposal.categoryId == null && (
-            <option value="">Seleziona...</option>
-          )}
-          {categories.map((category) => (
-            <option key={category.value} value={category.value}>
-              {category.label}
+          <option value="">Seleziona una categoria...</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.labels?.it || formatFallbackLabel(cat.code || "")}
             </option>
           ))}
         </select>
-        {formSchema && formSchema.length > 0 && (
-          <div className="my-4 p-3 border rounded">
-            <p className="fw-bold">Dettagli aggiuntivi richiesti per la categoria</p>
-            {formSchema.map((field) => {
-              let fieldElement: React.ReactNode
-              switch (field.kind) {
-                case "text":
-                  fieldElement = (
-                    <textarea
-                      id={field.key}
-                      className="form-control bg-light"
-                      value={String(proposal.additionalData?.[field.key] ?? "")}
-                      onChange={handleAdditionalDataChange}
-                      required={field.required}
-                      rows={5}
-                    />
-                  )
-                  break
-                case "number":
-                  fieldElement = (
-                    <input
-                      id={field.key}
-                      type="number"
-                      className="form-control bg-light"
-                      value={proposal.additionalData?.[field.key] === undefined ? "" : String(proposal.additionalData?.[field.key])}
-                      onChange={handleAdditionalDataChange}
-                      required={field.required}
-                    />
-                  )
-                  break
-                case "date":
-                  fieldElement = (
-                    <input
-                      id={field.key}
-                      type="date"
-                      className="form-control bg-light"
-                      value={String(proposal.additionalData?.[field.key] ?? "")}
-                      onChange={handleAdditionalDataChange}
-                      required={field.required}
-                    />
-                  )
-                  break
-                case "boolean":
-                  fieldElement = (
-                    <div className="form-check">
-                      <input
-                        id={field.key}
-                        type="checkbox"
-                        className="form-check-input"
-                        checked={!!proposal.additionalData?.[field.key]}
-                        onChange={handleAdditionalDataChange}
-                      />
-                    </div>
-                  )
-                  break
-                case "select":
-                  fieldElement = (
-                    <select
-                      id={field.key}
-                      className="form-select bg-light"
-                      value={String(proposal.additionalData?.[field.key] ?? "")}
-                      onChange={handleAdditionalDataChange}
-                      required={field.required}
-                    >
-                      <option value="" disabled>
-                        Seleziona...
-                      </option>
-                      {field.options.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label.it}
-                        </option>
-                      ))}
-                    </select>
-                  )
-                  break
-                case "multiselect":
-                  fieldElement = (
-                    <select
-                      id={field.key}
-                      multiple
-                      className="form-select bg-light"
-                      value={Array.isArray(proposal.additionalData?.[field.key]) ? (proposal.additionalData?.[field.key] as string[]) : []}
-                      onChange={handleAdditionalDataChange}
-                      required={field.required}
-                    >
-                      {field.options.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label.it}
-                        </option>
-                      ))}
-                    </select>
-                  )
-                  break
-                default:
-                  fieldElement = (
-                    <p className="form-text text-muted">
-                      Campo di tipo &quot;{field.kind}&quot; non ancora supportato.
-                    </p>
-                  )
-              }
-              return (
-                <div className="mb-3" key={field.key}>
-                  <label htmlFor={field.key} className="form-label">
-                    {field.label.it ?? field.key}
-                    {field.required && <span className="text-danger">*</span>}
-                  </label>
-                  {fieldElement}
-                </div>
-              )
-            })}
-          </div>
-        )}
+        {errors.categoryId && <div className="text-danger small mt-1 fw-bold">{errors.categoryId}</div>}
+        <div className="form-text small mt-2">La selezione caricherà i campi specifici.</div>
       </div>
-    </form>
+
+      <div className="mb-5">
+        <label className="form-label fw-bold small text-muted text-uppercase ls-1">Descrizione Generale <span className="text-danger">*</span></label>
+        <textarea
+          className={`${inputClass} p-3 ${errors.description ? 'border-danger' : ''}`}
+          style={errors.description ? { borderColor: 'var(--bs-danger)' } : {}}
+          rows={5}
+          placeholder="Descrivi la tua idea in modo chiaro..."
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          disabled={saving}
+        />
+        {errors.description && <div className="text-danger small mt-1 fw-bold">{errors.description}</div>}
+      </div>
+
+      {formData.categoryId && (
+        <div 
+          className="bg-white rounded-3 p-4 p-md-5 mb-5 shadow-sm position-relative overflow-hidden" 
+          style={{ 
+            border: `1px solid ${activeColor}40`,
+            borderLeft: `5px solid ${activeColor}`
+          }}
+        >
+          <h5 className="fw-bold mb-4 d-flex align-items-center gap-2" style={{ color: activeColor }}>
+             <div className="p-2 rounded-circle d-flex" style={{ backgroundColor: `${activeColor}20` }}>
+                <svg className="icon icon-sm" style={{ fill: activeColor }}><use href="/svg/sprites.svg#it-list"></use></svg>
+             </div>
+             Dettagli {selectedCategory?.labels?.it || "Specifici"}
+          </h5>
+          
+          {loadingSchema ? (
+             <div className="text-center py-4 text-muted">Caricamento campi...</div>
+          ) : dynamicSchema.length > 0 ? (
+             <div className="row g-4">
+               {dynamicSchema.map((field) => {
+                 const isWide = ['map', 'text', 'file', 'multiselect'].includes(field.kind);
+                 return (
+                   <div key={field.key} className={isWide ? 'col-12' : 'col-md-6'}>
+                      <DynamicField
+                        field={field}
+                        value={dynamicData[field.key]} 
+                        onChange={(val) => handleDynamicChange(field.key, val)}
+                        disabled={saving}
+                        color={activeColor}
+                        error={errors[field.key]} 
+                        warning={warnings[field.key]}
+                      />
+                   </div>
+                 )
+               })}
+             </div>
+          ) : (
+             <div className="alert alert-light border-0 mb-0 text-center text-muted">Nessun campo extra per questa categoria.</div>
+          )}
+        </div>
+      )}
+
+      <div className="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-center pt-2 border-top mt-4 pt-4">
+
+         <div>
+            {isEditing && isDraft && (
+                <button 
+                    onClick={handleDelete}
+                    disabled={deleting || saving}
+                    className="btn btn-link text-danger text-decoration-none px-0 fw-semibold"
+                >
+                    {deleting ? "Eliminazione..." : "Elimina Bozza"}
+                </button>
+            )}
+         </div>
+
+         <div className="d-flex gap-3 align-items-center w-100 w-md-auto justify-content-end">
+            <Link href={isEditing ? `/proposte/${initialData.id}` : "/proposte"} className="text-muted text-decoration-none fw-semibold px-2">
+                Annulla
+            </Link>
+            
+            {(isDraft) && (
+                <button
+                className="btn btn-light border fw-bold px-4 py-2 rounded-3"
+                onClick={() => handleAction('SAVE_DRAFT')}
+                disabled={saving}
+                >
+                {saving ? "..." : "Salva Bozza"}
+                </button>
+            )}
+            
+            <button
+                className="btn btn-mustard fw-bold px-4 py-2 rounded-3 shadow-sm text-dark"
+                onClick={() => handleAction(isDraft ? 'PUBLISH' : 'UPDATE')}
+                disabled={saving}
+            >
+                {saving ? "..." : (isDraft ? "Pubblica Proposta" : "Salva Modifiche")}
+            </button>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        .ls-1 { letter-spacing: 0.5px; font-size: 0.75rem; }
+        .btn-mustard { background-color: #E3B448; border: 1px solid #dca027; transition: all 0.2s; }
+        .btn-mustard:hover { filter: brightness(0.95); transform: translateY(-1px); }
+
+        .bg-off-white { background-color: #fafafa !important; }
+        .custom-border { border: 1px solid #ced4da !important; }
+
+        .form-control:focus, .form-select:focus {
+           background-color: #ffffff !important;
+           border-color: ${theme.primary} !important;
+           box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+        }
+      `}</style>
+    </div>
   )
 }

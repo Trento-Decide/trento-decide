@@ -12,8 +12,8 @@
 - [ ] RF2.7     Visualizzazione proposte e sondaggi
 - [x] RF2.10    Votazione
 - [x] RF3.1     Gestione dei preferiti
-- [ ] RF3.4     Ordinamento delle proposte
-- [ ] RF3.5     Filtraggio delle proposte
+- [x] RF3.4     Ordinamento delle proposte
+- [x] RF3.5     Filtraggio delle proposte
 - [ ] RF4.3     Coda di revisione
 - [ ] RF4.5.1   Limitazioni sui cittadini
 - [ ] RF5.1     Dashboard amministrativa
@@ -52,8 +52,8 @@ nota: solo rimozione contenuto, niente form descrittivi
 
 ## Youssef
 - [x] RF2.10    Votazione
-- [ ] RF3.4     Ordinamento delle proposte
-- [ ] RF3.5     Filtraggio delle proposte
+- [x] RF3.4     Ordinamento delle proposte
+- [x] RF3.5     Filtraggio delle proposte
 - [ ] RF1.5.2   Ricezione notifiche
 - [ ] Design generale applicazione
 

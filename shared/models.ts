@@ -2,24 +2,26 @@ export type ID = number
 export type ISODateString = string
 export type LocalizedText = { [lang: string]: string }
 
+export type MapDrawMode = 'marker' | 'polygon';
+
 export interface RoleRef {
   id: ID
   code: string
-  label?: string
+  labels?: string
   colour?: string
 }
 
 export interface CategoryRef {
   id: ID
   code: string
-  label?: string
+  labels?: LocalizedText
   colour?: string
 }
 
 export interface StatusRef {
   id: ID
   code: string
-  label?: string
+  labels?: LocalizedText
   colour?: string
 }
 
@@ -106,6 +108,7 @@ export interface DateField extends BaseFormField {
 
 export interface MapField extends BaseFormField {
   kind: "map"
+  drawMode?: MapDrawMode
   geoSchema?: unknown
 }
 
@@ -193,7 +196,8 @@ export interface ProposalVote {
 export interface Favourite {
   id: ID
   userId: ID
-  proposalId: ID
+  proposalId?: ID
+  pollId?: ID
   createdAt: ISODateString
 }
 
@@ -214,6 +218,7 @@ export interface Poll {
   expiresAt?: ISODateString
   createdAt: ISODateString
   questions?: PollQuestion[]
+  isFavourited?: boolean
 }
 
 export interface PollQuestion {
@@ -278,37 +283,44 @@ export interface PollCreateInput {
   }>
 }
 
-export interface ProposalFilters {
-  q?: string
-  titlesOnly?: boolean
-  authorId?: ID
-  authorUsername?: string
-  categoryId?: ID
-  categoryCode?: string
-  statusId?: ID
-  statusCode?: string
-  favourites?: boolean
-  minVotes?: number
-  maxVotes?: number
-  dateFrom?: ISODateString
-  dateTo?: ISODateString
-  sortBy?: "date" | "votes" | "title"
-  sortOrder?: "asc" | "desc"
+interface BaseSearchFilters {
+  q?: string;              
+  titlesOnly?: boolean;
+
+  authorId?: number | string;       
+  authorUsername?: string;
+  categoryId?: number | string;     
+  categoryCode?: string;
+
+  favourites?: boolean; 
+
+  dateFrom?: ISODateString;
+  dateTo?: ISODateString;
+
+  limit?: number;
+  sortBy?: 'date' | 'votes' | 'title'; 
+  sortOrder?: 'asc' | 'desc';
 }
 
-export interface GlobalSearchFilters {
-  q: string
-  titlesOnly?: boolean
-  authorUsername?: string
-  type?: "all" | "proposta" | "sondaggio"
-  dateFrom?: ISODateString
-  dateTo?: ISODateString
-  categoryCode?: string
-  statusCode?: string
-  minVotes?: number
-  maxVotes?: number
-  sortBy?: "date" | "votes" | "title"
-  sortOrder?: "asc" | "desc"
+export interface ProposalFilters extends BaseSearchFilters {
+  statusId?: number | string;
+  statusCode?: string;
+  
+  minVotes?: number;
+  maxVotes?: number;  
+}
+
+export interface PollFilters extends BaseSearchFilters {
+  isActive?: boolean; 
+}
+
+export interface GlobalFilters extends BaseSearchFilters {
+  type?: 'all' | 'proposta' | 'sondaggio';
+  minVotes?: number;
+  maxVotes?: number;
+  statusId?: number | string;
+  statusCode?: string;
+  isActive?: boolean;
 }
 
 export interface ProposalSearchItem {
@@ -316,14 +328,12 @@ export interface ProposalSearchItem {
   id: ID
   title: string
   description: string
-  author?: string
-  category?: string
-  categoryColour?: string
-  status?: string
-  statusColour?: string
+  author?: UserRef
+  category?: CategoryRef
+  status?: StatusRef
   voteValue?: number
   date?: string
-  timestamp?: ISODateString
+  createdAt?: ISODateString
   isFavourited?: boolean
 }
 
@@ -332,11 +342,13 @@ export interface PollSearchItem {
   id: ID
   title: string
   description: string
-  author?: string
-  category?: string
-  status?: string
+  author?: UserRef
+  category?: CategoryRef
+  isActive?: boolean
+  expiresAt?: string
   date?: string
   timestamp?: ISODateString
+  isFavourited?: boolean
 }
 
 export interface NotificationType {
@@ -363,7 +375,9 @@ export class ApiError extends Error {
   constructor(message: string, statusCode?: number) {
     super(message)
     this.name = this.constructor.name
-    this.statusCode = statusCode
+    if (statusCode !== undefined) {
+      this.statusCode = statusCode
+    }
 
     Object.setPrototypeOf(this, ApiError.prototype)
   }

@@ -1,8 +1,8 @@
 import express, { type Request, type Response } from "express"
 import { pool } from "../database.js"
-import { loadFormSchemaByCategoryId } from "../services/validation.js"
+import { loadFormSchemaByCategoryId } from "../services/formValidation.js"
 
-import type { Category, FormField } from "../../../shared/models.js"
+import type { Category, FormField, Status } from "../../../shared/models.js"
 
 type DBCategoryRow = {
   id: number
@@ -12,6 +12,14 @@ type DBCategoryRow = {
   colour?: string | null
   form_schema?: unknown
 }
+
+type DBStatusRow = {
+  id: number
+  code: string
+  labels: Record<string, string> | null
+  colour?: string | null
+}
+
 
 const router = express.Router()
 
@@ -52,6 +60,29 @@ router.get(
     } catch (err) {
       console.error(err)
       return res.status(404).json({ error: "Category not found" })
+    }
+  },
+)
+
+router.get(
+  "/statuses",
+  async (_req: Request, res: Response<{ data: Status[] } | { error: string }>) => { 
+    try {
+      const { rows } = await pool.query(
+        `SELECT id, code, labels, colour FROM statuses ORDER BY code`
+      ) 
+      
+      const data: Status[] = rows.map((r: DBStatusRow) => ({
+        id: r.id,
+        code: r.code,
+        labels: r.labels ?? {},
+        ...(r.colour ? { colour: r.colour } : {}),
+      }))
+      
+      return res.json({ data })
+    } catch (err) {
+      console.error(err)
+      return res.status(500).json({ error: "Failed to fetch statuses" })
     }
   },
 )

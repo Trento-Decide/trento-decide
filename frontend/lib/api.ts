@@ -4,8 +4,9 @@ import {
   ProposalSearchItem,
   User,
   ProposalFilters,
-  GlobalSearchFilters,
+  GlobalFilters,
   GlobalSearchItem,
+  Status,
   Category,
   CategoryFormSchema,
   ProposalInput,
@@ -87,12 +88,12 @@ export const providerLogin = async () => {
   setProviderToken(body.providerToken)
 }
 
-export const register = async (username: string, email: string, password: string) => {
+export const register = async (username: string, email: string, password: string, confirmPassword: string, emailOptIn: boolean) => {
   const url = `${apiUrl}/auth/register`
   await apiFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, email, password })
+    body: JSON.stringify({ username, email, password, confirmPassword, emailOptIn })
   })
 }
 
@@ -115,11 +116,11 @@ export const login = async (email: string, password: string) => {
   return body
 }
 
-export const globalSearch = async (filters: GlobalSearchFilters): Promise<{ data: GlobalSearchItem[] }> => {
+export const globalSearch = async (filters: GlobalFilters): Promise<{ data: GlobalSearchItem[] }> => {
   const url = new URL(`${apiUrl}/cerca`)
 
   Object.keys(filters).forEach(key => {
-    const value = filters[key as keyof GlobalSearchFilters]
+    const value = filters[key as keyof GlobalFilters]
     if (value !== undefined && value !== null && value !== '') {
       url.searchParams.append(key, String(value))
     }
@@ -201,7 +202,7 @@ export const removeFavouriteProposal = async (proposalId: number) => {
   })
 }
 
-export const getFavoriteForProposal = async (proposalId: number) => {
+export const getFavouriteForProposal = async (proposalId: number) => {
   const url = new URL(`${apiUrl}/proposte/${proposalId}/preferisco`)
 
   const body = await apiFetch<{ isFavourited: boolean }>(url.toString(), {
@@ -209,6 +210,11 @@ export const getFavoriteForProposal = async (proposalId: number) => {
     headers: getAuthHeaders(false),
   })
   return body.isFavourited
+}
+
+export const getStatuses = async (): Promise<{ data: Status[] }> => {
+  const url = `${apiUrl}/config/statuses`
+  return apiFetch(url, { method: "GET", headers: getAuthHeaders(false), cache: "no-store" })
 }
 
 export const getCategories = async (): Promise<{ data: Category[] }> => {
