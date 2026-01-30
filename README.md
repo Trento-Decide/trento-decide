@@ -5,70 +5,36 @@
    git clone https://github.com/Trento-Decide/trento-decide.git
    ```
 
-### Front-end
-
-2. Spostati nella cartella
-   ```bash
-   cd frontend
-   ```
-
-3. Copia il file di configurazione e modificalo
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Installa le dipendenze
-   ```bash
-   npm install
-   ```
-
-#### Sviluppo
-
-6. Avvia l'applicazione in modalità sviluppo
-   ```bash
-   npm run dev
-   ```
-
-### Back-end
-
-2. Spostati nella cartella
-   ```bash
-   cd backend
-   ```
-
-3. Copia il file di configurazione e modificalo
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Installa le dipendenze
-   ```bash
-   npm install
-   ```
-
-5. Crea il database
+2. Crea il database (se non esiste)
    ```bash
    psql -h localhost -U postgres -c "CREATE DATABASE trentodecide;"
    ```
 
-#### Sviluppo
+### Front-end
 
-6. Avvia l'applicazione in modalità sviluppo
-   ```bash
-   npm run dev
-   ```
+**Unix/macOS/Linux:**
+```bash
+./frontend/dev.sh
+```
 
-7. Per (ri)caricare lo schema del DB con i dati fasulli si può eseguire
-   ```bash
-   npm run db:init:dev
-   ```
+**Windows (PowerShell):**
+```powershell
+.\frontend\dev.ps1
+```
 
-#### Produzione
+### Back-end
 
-6. Per (ri)caricare lo schema del DB si può eseguire
-   ```bash
-   npm run db:init:prod
-   ```
+**Unix/macOS/Linux:**
+```bash
+./backend/dev.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+.\backend\dev.ps1
+```
+
+Per (ri)caricare lo schema del DB con i dati fasulli, usa la flag `--init-db` / `-InitDb`.
 
 ## Stack
 
