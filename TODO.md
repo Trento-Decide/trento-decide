@@ -79,3 +79,11 @@ nota: solo rimozione contenuto, niente form descrittivi
 - [ ] RF2.7     Visualizzazione proposte e sondaggi
 - [ ] Spec OpenAPI
 - [ ] Prepara app alla produzione
+
+## Note di Febbraio
+- [ ] Rimuovi allegati
+- [ ] Prima schermata login / registrazione, no visibilita del resto
+- [ ] RF stringhe minimali (pwd, username) (regex)
+- [ ] Non posso votarmi da solo
+- [ ] Sondaggi
+- [ ] Logo comune di Trentocity
