@@ -23,8 +23,10 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const result = await pool.query(
       `
-        SELECT u.id, u.username, u.email, u.password_hash, u.is_banned
+        SELECT u.id, u.username, u.email, u.password_hash, u.is_banned, u.email_opt_in, u.created_at,
+               r.id AS role_id, r.code AS role_code, r.labels AS role_labels, r.colour AS role_colour
         FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
         WHERE u.email = $1
       `,
       [email],
@@ -42,6 +44,12 @@ router.post("/login", async (req: Request, res: Response) => {
       email: string
       password_hash: string
       is_banned: boolean
+      email_opt_in: boolean
+      created_at: Date
+      role_id: number
+      role_code: string
+      role_labels: { [key: string]: string }
+      role_colour: string
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password_hash)
@@ -69,6 +77,15 @@ router.post("/login", async (req: Request, res: Response) => {
         id: user.id,
         username: user.username,
         email: user.email,
+        emailOptIn: user.email_opt_in,
+        isBanned: user.is_banned,
+        createdAt: new Date(user.created_at).toISOString(),
+        role: {
+          id: user.role_id,
+          code: user.role_code,
+          labels: user.role_labels,
+          colour: user.role_colour
+        }
       },
     })
   } catch (err) {
@@ -113,7 +130,7 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
-    const DEFAULT_ROLE_CODE = "cittadino"; 
+    const DEFAULT_ROLE_CODE = "cittadino";
 
     const roleResult = await pool.query(
       `SELECT id FROM roles WHERE code = $1`,

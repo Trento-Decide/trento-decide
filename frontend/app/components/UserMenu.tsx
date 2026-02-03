@@ -12,6 +12,7 @@ interface UserMenuProps {
 
 export default function UserMenu({ mobileMode = false }: UserMenuProps) {
   const [userName, setUserName] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -31,8 +32,13 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
   useEffect(() => {
     const update = () => {
       const user = getUserData()
-      if (user) setUserName(user.username)
-      else setUserName(null)
+      if (user) {
+        setUserName(user.username)
+        setUserRole(user.role?.code ?? null)
+      } else {
+        setUserName(null)
+        setUserRole(null)
+      }
 
       setIsLoading(false)
     }
@@ -52,10 +58,13 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
     router.push('/')
   }
 
+  const isAdmin = userRole === 'admin'
+
   const profileLinks = [
     { href: "/profilo", hash: "#", label: "Dati personali", icon: "sprites.svg#it-user" },
     { href: "/profilo#mie-proposte", hash: "#mie-proposte", label: "Le mie proposte", icon: "sprites.svg#it-file" },
     { href: "/profilo#preferiti", hash: "#preferiti", label: "Preferiti", icon: "custom.svg#heart" },
+    ...(isAdmin ? [{ href: "/dashboard", hash: "", label: "Dashboard", icon: "sprites.svg#it-settings", isAdmin: true }] : []),
   ]
 
   return (
@@ -181,56 +190,56 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
           </button>
 
           {isOpen && (
-             <ul
+            <ul
               className="dropdown-menu show shadow border-0 mt-2 p-1 force-align-menu menu-animate"
               style={{ minWidth: "180px", zIndex: 9999, fontSize: '0.9rem', paddingTop: '8px', marginRight: '-18px !important' }}
-             >
-                {profileLinks.map((link, index) => {
-                  const isProfilePage = pathname === "/profilo"
-                  const finalHref = isProfilePage ? link.hash : link.href
-                  const commonProps = {
-                    className: "dropdown-item menu-item-green d-flex align-items-center gap-2 py-1 px-2 rounded",
-                    onClick: () => setIsOpen(false),
-                  }
+            >
+              {profileLinks.map((link, index) => {
+                const isProfilePage = pathname === "/profilo"
+                const finalHref = isProfilePage ? link.hash : link.href
+                const commonProps = {
+                  className: "dropdown-item menu-item-green d-flex align-items-center gap-2 py-1 px-2 rounded",
+                  onClick: () => setIsOpen(false),
+                }
 
-                  const content = (
-                    <>
-                      <svg className="icon icon-sm" style={{ width: 18, height: 18, fill: "currentColor" }} aria-hidden="true">
-                        <use href={`/svg/${link.icon}`}></use>
-                      </svg>
-                      <span>{link.label}</span>
-                    </>
-                  )
+                const content = (
+                  <>
+                    <svg className="icon icon-sm" style={{ width: 18, height: 18, fill: "currentColor" }} aria-hidden="true">
+                      <use href={`/svg/${link.icon}`}></use>
+                    </svg>
+                    <span>{link.label}</span>
+                  </>
+                )
 
-                  return (
-                    <li key={link.href} style={index === 0 ? { marginTop: '12px' } : {}}>
-                      {isProfilePage ? (
-                        <a href={finalHref} {...commonProps}>
-                          {content}
-                        </a>
-                      ) : (
-                        <Link href={finalHref} {...commonProps}>
-                          {content}
-                        </Link>
-                      )}
-                    </li>
-                  )
-                })}
-               <li><hr className="dropdown-divider my-1" style={{ borderTop: '1px solid #e0e0e0', opacity: 1 }} /></li>
-               <li>
-                 <a
+                return (
+                  <li key={link.href} style={index === 0 ? { marginTop: '12px' } : {}}>
+                    {isProfilePage ? (
+                      <a href={finalHref} {...commonProps}>
+                        {content}
+                      </a>
+                    ) : (
+                      <Link href={finalHref} {...commonProps}>
+                        {content}
+                      </Link>
+                    )}
+                  </li>
+                )
+              })}
+              <li><hr className="dropdown-divider my-1" style={{ borderTop: '1px solid #e0e0e0', opacity: 1 }} /></li>
+              <li>
+                <a
                   href="#"
                   className="dropdown-item logout-item d-flex align-items-center gap-2 py-1 px-2 rounded mt-1"
                   onClick={handleLogout}
-                 >
-                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="logout-icon" aria-hidden="true">
-                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                     <polyline points="16 17 21 12 16 7"></polyline>
-                     <line x1="21" y1="12" x2="9" y2="12"></line>
-                   </svg>
-                   <span>Esci</span>
-                 </a>
-               </li>
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="logout-icon" aria-hidden="true">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <span>Esci</span>
+                </a>
+              </li>
             </ul>
           )}
         </div>

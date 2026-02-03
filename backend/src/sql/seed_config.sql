@@ -222,3 +222,16 @@ VALUES
   ('system_warning',     '{"it":"Avviso di sistema"}'::jsonb)
 ON CONFLICT (code) DO UPDATE
 SET labels = EXCLUDED.labels;
+
+-- UTENTE ADMIN
+INSERT INTO users (username, email, email_opt_in, password_hash, role_id, is_banned, created_at)
+VALUES (
+  'amministratore',
+  'admin@trentodecide.it',
+  FALSE,
+  '$2b$10$9LLKaiJNpQqwM9/KNwPcyeXc.nlFNfPxzqiG4.WibZS7mJRznG25C', -- password: Ammy50!
+  (SELECT id FROM roles WHERE code = 'admin'),
+  FALSE,
+  NOW()
+)
+ON CONFLICT (username) DO NOTHING;
