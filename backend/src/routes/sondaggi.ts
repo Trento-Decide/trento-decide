@@ -7,15 +7,157 @@ import type {
   PollOption,
   PollCreateInput,
   ID,
+  PollSearchItem,
+  UserRef,
+  CategoryRef,
+  LocalizedText,
 } from "../../../shared/models.js"
 
 const router = express.Router()
+
+router.get(
+  "/",
+  conditionalAuthenticateToken,
+  async (
+    req: Request<unknown, unknown, unknown, Record<string, unknown>>,
+    res: Response<PollSearchItem[] | { error: string }>,
+  ) => {
+    try {
+      const conditions: string[] = []
+      const values: unknown[] = []
+
+      const q = req.query.q as string | undefined
+      const titlesOnly = req.query.titlesOnly === 'true'
+      const authorId = req.query.authorId ? Number(req.query.authorId) : undefined
+      const authorUsername = req.query.authorUsername as string | undefined
+      const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined
+      const categoryCode = req.query.categoryCode as string | undefined
+      const isActive = req.query.isActive !== undefined ? req.query.isActive === 'true' : undefined
+      const dateFrom = req.query.dateFrom as string | undefined
+      const dateTo = req.query.dateTo as string | undefined
+
+      if (q) {
+        const idx = values.push(`%${q}%`)
+        if (titlesOnly) {
+          conditions.push(`p.title ILIKE $${idx}`)
+        } else {
+          conditions.push(`(p.title ILIKE $${idx} OR p.description ILIKE $${idx})`)
+        }
+      }
+
+      if (authorId) {
+        const idx = values.push(authorId)
+        conditions.push(`p.created_by = $${idx}`)
+      } else if (authorUsername) {
+        const idx = values.push(authorUsername)
+        conditions.push(`u.username = $${idx}`)
+      }
+
+      if (categoryId) {
+        const idx = values.push(categoryId)
+        conditions.push(`p.category_id = $${idx}`)
+      } else if (categoryCode) {
+        const idx = values.push(categoryCode)
+        conditions.push(`c.code = $${idx}`)
+      }
+
+      if (isActive !== undefined) {
+        const idx = values.push(isActive)
+        conditions.push(`p.is_active = $${idx}`)
+      }
+
+      if (dateFrom) {
+        const idx = values.push(dateFrom)
+        conditions.push(`p.created_at >= $${idx}::timestamptz`)
+      }
+      if (dateTo) {
+        const idx = values.push(dateTo)
+        conditions.push(`p.created_at <= $${idx}::timestamptz`)
+      }
+
+      const whereClause = conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : ""
+
+      const query = `
+        SELECT
+          p.id, p.title, p.description, p.is_active, p.expires_at, p.created_at,
+          
+          u.id AS author_id,
+          u.username AS author_username,
+          
+          c.id AS category_id,
+          c.labels AS category_labels,
+          c.code AS category_code, 
+          c.colour AS category_colour
+        FROM polls p
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN users u ON p.created_by = u.id
+        ${whereClause}
+        ORDER BY p.created_at DESC
+      `
+
+      const result = await pool.query(query, values)
+
+      interface PollRow {
+        id: number
+        title: string
+        description: string | null
+        is_active: boolean
+        expires_at: Date | null
+        created_at: Date
+
+        author_id: number
+        author_username: string
+
+        category_id: number | null
+        category_labels: LocalizedText
+        category_code: string
+        category_colour: string
+      }
+
+      const items: PollSearchItem[] = result.rows.map((row) => {
+        const r = row as PollRow
+
+        const authorRef: UserRef = {
+          id: r.author_id,
+          username: r.author_username,
+        }
+
+        const categoryRef: CategoryRef | undefined = r.category_id ? {
+          id: r.category_id,
+          code: r.category_code,
+          labels: r.category_labels,
+          colour: r.category_colour
+        } as CategoryRef : undefined
+
+        return {
+          type: "sondaggio" as const,
+          id: r.id,
+          title: r.title,
+          description: r.description ?? "",
+          isActive: r.is_active,
+          date: new Date(r.created_at).toLocaleDateString("it-IT"),
+          timestamp: new Date(r.created_at).toISOString(),
+
+          author: authorRef,
+
+          ...(categoryRef ? { category: categoryRef } : {}),
+          ...(r.expires_at ? { expiresAt: new Date(r.expires_at).toISOString() } : {}),
+        }
+      })
+
+      return res.json(items)
+    } catch (err) {
+      console.error(err)
+      return res.status(500).json({ error: "Errore nel recupero sondaggi" })
+    }
+  },
+)
 
 router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: string }>, res: Response<{ data: Poll; userHasVoted: boolean } | { error: string }>) => {
   try {
     const id = Number(req.params.id)
     const userId = req.user ? Number(req.user.sub) : undefined
-    
+
     if (!Number.isInteger(id)) return res.status(400).json({ error: "ID non valido" })
 
     const pollResult = await pool.query(
@@ -53,9 +195,9 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
 
     const questionsData = questionsResult.rows as QuestionRow[]
     const questionIds: number[] = questionsData.map((q) => q.id)
-    
+
     const optionsMap: Record<number, PollOption[]> = {}
-    
+
     interface OptionRow {
       id: number;
       question_id: number;
@@ -78,7 +220,7 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
 
       for (const opt of optionsRows) {
         if (!optionsMap[opt.question_id]) {
-            optionsMap[opt.question_id] = []
+          optionsMap[opt.question_id] = []
         }
         optionsMap[opt.question_id]!.push({
           id: opt.id,
@@ -94,7 +236,7 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
       pollId: p.id,
       text: q.text,
       orderIndex: q.order_index ?? 0,
-      options: optionsMap[q.id] || [] 
+      options: optionsMap[q.id] || []
     }))
 
     let userHasVoted = false
@@ -114,23 +256,23 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
     const poll: Poll = {
       id: p.id,
       title: p.title,
-      
+
       ...(p.description ? { description: p.description } : {}),
-      
+
       ...(p.category_id ? {
-          category: {
-            id: p.category_id as ID,
-            code: p.category_code ?? "unknown",
-            ...(p.category_label ? { labels: p.category_label } : {}),
-            ...(p.category_color ? { colour: p.category_color } : {})
-          }
+        category: {
+          id: p.category_id as ID,
+          code: p.category_code ?? "unknown",
+          ...(p.category_label ? { labels: p.category_label } : {}),
+          ...(p.category_color ? { colour: p.category_color } : {})
+        }
       } : {}),
 
       createdBy: { id: p.author_id as ID, username: p.author_name },
       isActive: p.is_active,
-      
+
       ...(p.expires_at ? { expiresAt: new Date(p.expires_at).toISOString() } : {}),
-      
+
       createdAt: new Date(p.created_at).toISOString(),
       questions: fullQuestions
     }
@@ -216,7 +358,7 @@ router.post("/:id/vota", authenticateToken, async (req: Request<{ id: string }, 
     const pollCheck = await pool.query(`SELECT is_active, expires_at FROM polls WHERE id = $1`, [pollId])
     if (pollCheck.rowCount === 0) return res.status(404).json({ error: "Sondaggio non trovato" })
     const poll = pollCheck.rows[0]
-    
+
     if (!poll.is_active) return res.status(400).json({ error: "Sondaggio chiuso" })
     if (poll.expires_at && new Date() > new Date(poll.expires_at)) {
       return res.status(400).json({ error: "Sondaggio scaduto" })

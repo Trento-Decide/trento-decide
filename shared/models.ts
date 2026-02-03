@@ -226,6 +226,7 @@ export interface PollQuestion {
   pollId: ID
   text: string
   orderIndex: number
+  options?: PollOption[]
 }
 
 export interface PollOption {
@@ -284,34 +285,34 @@ export interface PollCreateInput {
 }
 
 interface BaseSearchFilters {
-  q?: string;              
+  q?: string;
   titlesOnly?: boolean;
 
-  authorId?: number | string;       
+  authorId?: number | string;
   authorUsername?: string;
-  categoryId?: number | string;     
+  categoryId?: number | string;
   categoryCode?: string;
 
-  favourites?: boolean; 
+  favourites?: boolean;
 
   dateFrom?: ISODateString;
   dateTo?: ISODateString;
 
   limit?: number;
-  sortBy?: 'date' | 'votes' | 'title'; 
+  sortBy?: 'date' | 'votes' | 'title';
   sortOrder?: 'asc' | 'desc';
 }
 
 export interface ProposalFilters extends BaseSearchFilters {
   statusId?: number | string;
   statusCode?: string;
-  
+
   minVotes?: number;
-  maxVotes?: number;  
+  maxVotes?: number;
 }
 
 export interface PollFilters extends BaseSearchFilters {
-  isActive?: boolean; 
+  isActive?: boolean;
 }
 
 export interface GlobalFilters extends BaseSearchFilters {

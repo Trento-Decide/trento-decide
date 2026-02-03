@@ -10,7 +10,10 @@ import {
   Category,
   CategoryFormSchema,
   ProposalInput,
-  ApiError
+  ApiError,
+  PollFilters,
+  PollSearchItem,
+  Poll
 } from "../../shared/models"
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL
@@ -269,7 +272,29 @@ export const deleteProfile = async () => {
     return
   }
   return handleResponse(res).catch((err) => {
-      if (err instanceof ApiError) throw err
-      throw new ApiError(err instanceof Error ? err.message : "Si è verificato un errore imprevisto")
+    if (err instanceof ApiError) throw err
+    throw new ApiError(err instanceof Error ? err.message : "Si è verificato un errore imprevisto")
   })
+}
+
+export const getPolls = async (filters: PollFilters = {}): Promise<PollSearchItem[]> => {
+  const url = new URL(`${apiUrl}/sondaggi`)
+
+  Object.keys(filters).forEach(key => {
+    const value = filters[key as keyof PollFilters]
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.append(key, String(value))
+    }
+  })
+
+  return apiFetch(url.toString(), {
+    method: "GET",
+    headers: getAuthHeaders(false),
+    cache: "no-store"
+  })
+}
+
+export const getPoll = async (id: number): Promise<{ data: Poll; userHasVoted: boolean }> => {
+  const url = `${apiUrl}/sondaggi/${id}`
+  return apiFetch(url, { method: "GET", headers: getAuthHeaders(false) })
 }
