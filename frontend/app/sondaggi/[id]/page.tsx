@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 
-import { getPoll } from "@/lib/api"
+import { getPoll, votePoll } from "@/lib/api"
 
 import Breadcrumb from "@/app/components/Breadcrumb"
 import ErrorDisplay from "@/app/components/ErrorDisplay"
@@ -20,6 +20,8 @@ export default function PollDetail() {
 
     const [isCopied, setIsCopied] = useState(false)
     const [timeLeft, setTimeLeft] = useState<string | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [voteError, setVoteError] = useState<string | null>(null)
 
     const getStringLabel = (val: unknown): string => {
         if (!val) return ""
@@ -99,6 +101,38 @@ export default function PollDetail() {
             setIsCopied(true)
             setTimeout(() => setIsCopied(false), 2000)
         })
+    }
+
+    const handleSubmitVotes = async () => {
+        if (!poll || userHasVoted) return
+
+        // Check if all questions have selections
+        const questionsWithSelections = poll.questions?.filter(q => selectedOptions[q.id] != null) || []
+        if (questionsWithSelections.length === 0) {
+            setVoteError("Seleziona almeno un'opzione per votare")
+            return
+        }
+
+        setIsSubmitting(true)
+        setVoteError(null)
+
+        try {
+            // Submit votes for all selected questions
+            for (const question of poll.questions || []) {
+                const selectedOptionId = selectedOptions[question.id]
+                if (selectedOptionId != null) {
+                    await votePoll(poll.id, question.id, selectedOptionId)
+                }
+            }
+
+            setUserHasVoted(true)
+        } catch (err: unknown) {
+            if (err instanceof ApiError) setVoteError(err.message)
+            else if (err instanceof Error) setVoteError(err.message)
+            else setVoteError("Errore durante l'invio del voto")
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     if (error) return <div className="container my-5"><ErrorDisplay error={error} /></div>
@@ -313,20 +347,35 @@ export default function PollDetail() {
 
                             {/* Actions */}
                             <div className="d-flex flex-column gap-2">
+                                {voteError && (
+                                    <div className="alert alert-danger py-2 px-3 mb-0 small">
+                                        {voteError}
+                                    </div>
+                                )}
                                 <button
+                                    onClick={handleSubmitVotes}
                                     className="btn w-100 d-flex align-items-center justify-content-center gap-2 py-3 fw-bold rounded-3 shadow-sm hover-scale"
                                     style={{
                                         backgroundColor: poll.isActive && !userHasVoted ? catColor : '#e0e0e0',
                                         color: poll.isActive && !userHasVoted ? 'white' : '#888',
                                         border: 'none',
-                                        cursor: poll.isActive && !userHasVoted ? 'pointer' : 'not-allowed'
+                                        cursor: poll.isActive && !userHasVoted && !isSubmitting ? 'pointer' : 'not-allowed'
                                     }}
-                                    disabled={!poll.isActive || userHasVoted}
+                                    disabled={!poll.isActive || userHasVoted || isSubmitting}
                                 >
-                                    <svg className="icon icon-sm" style={{ fill: 'currentColor' }}>
-                                        <use href="/svg/sprites.svg#it-check-circle"></use>
-                                    </svg>
-                                    {userHasVoted ? 'Hai già votato' : 'Invia Voti'}
+                                    {isSubmitting ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            Invio in corso...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="icon icon-sm" style={{ fill: 'currentColor' }}>
+                                                <use href="/svg/sprites.svg#it-check-circle"></use>
+                                            </svg>
+                                            {userHasVoted ? 'Hai già votato' : 'Invia Voti'}
+                                        </>
+                                    )}
                                 </button>
 
                                 <button

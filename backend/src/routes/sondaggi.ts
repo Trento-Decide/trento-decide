@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from "express"
 import { pool } from "../database.js"
-import { authenticateToken, conditionalAuthenticateToken } from "../middleware/authMiddleware.js"
+import { authenticateToken, conditionalAuthenticateToken, requireAdmin } from "../middleware/authMiddleware.js"
 import type {
   Poll,
   PollQuestion,
@@ -288,7 +288,7 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
   }
 })
 
-router.post("/", authenticateToken, async (req: Request<unknown, unknown, PollCreateInput>, res: Response<{ success: true; pollId: ID } | { error: string }>) => {
+router.post("/", authenticateToken, requireAdmin, async (req: Request<unknown, unknown, PollCreateInput>, res: Response<{ success: true; pollId: ID } | { error: string }>) => {
   const client = await pool.connect()
   try {
     const userId = Number(req.user!.sub)

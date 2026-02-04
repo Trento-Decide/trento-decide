@@ -13,7 +13,9 @@ import {
   ApiError,
   PollFilters,
   PollSearchItem,
-  Poll
+  Poll,
+  PollCreateInput,
+  ID
 } from "../../shared/models"
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL
@@ -297,4 +299,22 @@ export const getPolls = async (filters: PollFilters = {}): Promise<PollSearchIte
 export const getPoll = async (id: number): Promise<{ data: Poll; userHasVoted: boolean }> => {
   const url = `${apiUrl}/sondaggi/${id}`
   return apiFetch(url, { method: "GET", headers: getAuthHeaders(false) })
+}
+
+export const createPoll = async (input: PollCreateInput): Promise<{ success: true; pollId: ID }> => {
+  const url = `${apiUrl}/sondaggi`
+  return apiFetch(url, {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify(input)
+  })
+}
+
+export const votePoll = async (pollId: number, questionId: number, selectedOptionId: number): Promise<{ success: boolean }> => {
+  const url = `${apiUrl}/sondaggi/${pollId}/vota`
+  return apiFetch(url, {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify({ questionId, selectedOptionId })
+  })
 }

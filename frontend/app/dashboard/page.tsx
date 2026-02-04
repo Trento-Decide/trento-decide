@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 import { getUserData } from "@/lib/local"
-import { getPolls } from "@/lib/api"
+import { getPolls, createPoll } from "@/lib/api"
 import { theme } from "@/lib/theme"
 import Breadcrumb from "@/app/components/Breadcrumb"
 import ErrorDisplay from "@/app/components/ErrorDisplay"
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
     const [isLoading, setIsLoading] = useState(true)
     const [polls, setPolls] = useState<PollSearchItem[]>([])
     const [error, setError] = useState<ApiError | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Form state for new poll
     const [newPoll, setNewPoll] = useState<PollCreateInput>({
@@ -102,6 +103,33 @@ export default function AdminDashboard() {
         }))
     }
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setError(null)
+        setIsSubmitting(true)
+
+        try {
+            await createPoll(newPoll)
+
+            // Reset form
+            setNewPoll({
+                title: "",
+                description: "",
+                isActive: true,
+                questions: [{ text: "", options: [{ text: "" }, { text: "" }] }]
+            })
+
+            // Refresh polls list
+            const data = await getPolls({ isActive: true })
+            setPolls(data)
+        } catch (err: unknown) {
+            if (err instanceof ApiError) setError(err)
+            else if (err instanceof Error) setError(new ApiError(err.message))
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
     if (isLoading) {
         return <div className="container my-5 text-center text-muted">Caricamento...</div>
     }
@@ -145,7 +173,7 @@ export default function AdminDashboard() {
                                 Crea Nuovo Sondaggio
                             </h2>
 
-                            <form onSubmit={(e) => e.preventDefault()}>
+                            <form onSubmit={handleSubmit}>
                                 {/* Title */}
                                 <div className="mb-4">
                                     <label className="form-label fw-bold small text-uppercase text-muted">Titolo *</label>
@@ -273,12 +301,21 @@ export default function AdminDashboard() {
                                     type="submit"
                                     className="btn btn-lg w-100 fw-bold"
                                     style={{ backgroundColor: theme.primary, color: 'white' }}
-                                    disabled
+                                    disabled={isSubmitting || !newPoll.title.trim()}
                                 >
-                                    <svg className="icon icon-sm me-2" style={{ fill: 'white' }}>
-                                        <use href="/svg/sprites.svg#it-check-circle"></use>
-                                    </svg>
-                                    Crea Sondaggio (Coming Soon)
+                                    {isSubmitting ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            Creazione in corso...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="icon icon-sm me-2" style={{ fill: 'white' }}>
+                                                <use href="/svg/sprites.svg#it-check-circle"></use>
+                                            </svg>
+                                            Crea Sondaggio
+                                        </>
+                                    )}
                                 </button>
                             </form>
                         </div>

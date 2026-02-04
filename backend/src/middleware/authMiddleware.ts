@@ -1,6 +1,7 @@
 import { type Request, type Response, type NextFunction } from "express"
 import jwt, { type Secret } from "jsonwebtoken"
 
+import { pool } from "../database.js"
 import getEnvVar from "../utils/env.js"
 import type { JwtUserPayload } from "../../../shared/auth.js"
 
@@ -69,4 +70,26 @@ export function conditionalAuthenticateToken(req: Request, _res: Response, next:
     }
     return next()
   })
+}
+
+export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user?.sub) {
+    return res.status(401).json({ error: "Non autenticato" })
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT r.code FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = $1`,
+      [req.user.sub]
+    )
+
+    if (result.rowCount === 0 || result.rows[0].code !== 'admin') {
+      return res.status(403).json({ error: "Accesso riservato agli amministratori" })
+    }
+
+    return next()
+  } catch (err) {
+    console.error("requireAdmin error:", err)
+    return res.status(500).json({ error: "Errore verifica permessi" })
+  }
 }
