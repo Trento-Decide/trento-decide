@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 import { getUserData } from "@/lib/local"
-import { getPolls, createPoll } from "@/lib/api"
+import { getPolls, createPoll, getDashboardStats, DashboardStats } from "@/lib/api"
 import { theme } from "@/lib/theme"
 import Breadcrumb from "@/app/components/Breadcrumb"
 import ErrorDisplay from "@/app/components/ErrorDisplay"
@@ -16,6 +16,7 @@ export default function AdminDashboard() {
     const [currentUser, setCurrentUser] = useState<User | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [polls, setPolls] = useState<PollSearchItem[]>([])
+    const [stats, setStats] = useState<DashboardStats | null>(null)
     const [error, setError] = useState<ApiError | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -50,6 +51,17 @@ export default function AdminDashboard() {
             }
         }
         fetchPolls()
+
+        // Fetch dashboard stats
+        const fetchStats = async () => {
+            try {
+                const data = await getDashboardStats()
+                setStats(data)
+            } catch (err: unknown) {
+                console.error("Failed to fetch dashboard stats:", err)
+            }
+        }
+        fetchStats()
     }, [router])
 
     const handleAddQuestion = () => {
@@ -122,6 +134,10 @@ export default function AdminDashboard() {
             // Refresh polls list
             const data = await getPolls({ isActive: true })
             setPolls(data)
+
+            // Refresh stats
+            const statsData = await getDashboardStats()
+            setStats(statsData)
         } catch (err: unknown) {
             if (err instanceof ApiError) setError(err)
             else if (err instanceof Error) setError(new ApiError(err.message))
@@ -156,11 +172,140 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                         <h1 className="display-6 fw-bold text-dark mb-0">Dashboard Admin</h1>
-                        <p className="text-muted mb-0 small">Gestione sondaggi e contenuti</p>
+                        <p className="text-muted mb-0 small">Gestione sondaggi e statistiche</p>
                     </div>
                 </div>
 
                 {error && <ErrorDisplay error={error} className="mb-4" />}
+
+                {/* Statistics Section */}
+                {stats && (
+                    <div className="mb-5">
+                        <h2 className="h5 fw-bold text-dark mb-4">
+                            <svg className="icon icon-sm me-2" style={{ fill: theme.primary }}>
+                                <use href="/svg/sprites.svg#it-chart-line"></use>
+                            </svg>
+                            Statistiche Piattaforma
+                        </h2>
+
+                        <div className="row g-4 mb-4">
+                            {/* Users Stats */}
+                            <div className="col-md-6 col-lg-3">
+                                <div className="content-card p-4 h-100">
+                                    <div className="d-flex align-items-center gap-3 mb-3">
+                                        <div className="stat-icon" style={{ backgroundColor: '#e3f2fd' }}>
+                                            <svg className="icon icon-sm" style={{ fill: '#1976d2' }}>
+                                                <use href="/svg/sprites.svg#it-user"></use>
+                                            </svg>
+                                        </div>
+                                        <span className="text-muted small fw-bold text-uppercase">Utenti</span>
+                                    </div>
+                                    <div className="display-5 fw-bold text-dark mb-2">{stats.users.total}</div>
+                                    <div className="d-flex flex-wrap gap-2">
+                                        <span className="badge bg-light text-muted">{stats.users.citizens} cittadini</span>
+                                        <span className="badge bg-light text-muted">{stats.users.moderators} mod</span>
+                                        <span className="badge bg-light text-muted">{stats.users.admins} admin</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Proposals Stats */}
+                            <div className="col-md-6 col-lg-3">
+                                <div className="content-card p-4 h-100">
+                                    <div className="d-flex align-items-center gap-3 mb-3">
+                                        <div className="stat-icon" style={{ backgroundColor: '#e8f5e9' }}>
+                                            <svg className="icon icon-sm" style={{ fill: '#388e3c' }}>
+                                                <use href="/svg/sprites.svg#it-file"></use>
+                                            </svg>
+                                        </div>
+                                        <span className="text-muted small fw-bold text-uppercase">Proposte</span>
+                                    </div>
+                                    <div className="display-5 fw-bold text-dark mb-2">{stats.proposals.total}</div>
+                                    <div className="d-flex flex-wrap gap-2">
+                                        <span className="badge bg-success bg-opacity-10 text-success">{stats.proposals.published} pubblicate</span>
+                                        <span className="badge bg-secondary bg-opacity-10 text-secondary">{stats.proposals.drafts} bozze</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Polls Stats */}
+                            <div className="col-md-6 col-lg-3">
+                                <div className="content-card p-4 h-100">
+                                    <div className="d-flex align-items-center gap-3 mb-3">
+                                        <div className="stat-icon" style={{ backgroundColor: '#fff3e0' }}>
+                                            <svg className="icon icon-sm" style={{ fill: '#f57c00' }}>
+                                                <use href="/svg/sprites.svg#it-inbox"></use>
+                                            </svg>
+                                        </div>
+                                        <span className="text-muted small fw-bold text-uppercase">Sondaggi</span>
+                                    </div>
+                                    <div className="display-5 fw-bold text-dark mb-2">{stats.polls.total}</div>
+                                    <div className="d-flex flex-wrap gap-2">
+                                        <span className="badge bg-success bg-opacity-10 text-success">{stats.polls.active} attivi</span>
+                                        <span className="badge bg-secondary bg-opacity-10 text-secondary">{stats.polls.closed} chiusi</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Votes Stats */}
+                            <div className="col-md-6 col-lg-3">
+                                <div className="content-card p-4 h-100">
+                                    <div className="d-flex align-items-center gap-3 mb-3">
+                                        <div className="stat-icon" style={{ backgroundColor: '#fce4ec' }}>
+                                            <svg className="icon icon-sm" style={{ fill: '#c2185b' }}>
+                                                <use href="/svg/sprites.svg#it-check-circle"></use>
+                                            </svg>
+                                        </div>
+                                        <span className="text-muted small fw-bold text-uppercase">Voti Totali</span>
+                                    </div>
+                                    <div className="display-5 fw-bold text-dark mb-2">{stats.votes.proposalVotes + stats.votes.pollVotes}</div>
+                                    <div className="d-flex flex-wrap gap-2">
+                                        <span className="badge bg-light text-muted">{stats.votes.proposalVotes} proposte</span>
+                                        <span className="badge bg-light text-muted">{stats.votes.pollVotes} sondaggi</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Proposals by Category & Status */}
+                        <div className="row g-4">
+                            <div className="col-md-6">
+                                <div className="content-card p-4">
+                                    <h6 className="fw-bold text-muted text-uppercase small mb-3">Proposte per Categoria</h6>
+                                    {stats.proposals.byCategory.length === 0 ? (
+                                        <p className="text-muted small mb-0">Nessuna proposta</p>
+                                    ) : (
+                                        <div className="d-flex flex-column gap-2">
+                                            {stats.proposals.byCategory.map((cat, idx) => (
+                                                <div key={idx} className="d-flex justify-content-between align-items-center">
+                                                    <span className="text-dark">{cat.label}</span>
+                                                    <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">{cat.count}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="content-card p-4">
+                                    <h6 className="fw-bold text-muted text-uppercase small mb-3">Proposte per Stato</h6>
+                                    {stats.proposals.byStatus.length === 0 ? (
+                                        <p className="text-muted small mb-0">Nessuna proposta</p>
+                                    ) : (
+                                        <div className="d-flex flex-column gap-2">
+                                            {stats.proposals.byStatus.map((status, idx) => (
+                                                <div key={idx} className="d-flex justify-content-between align-items-center">
+                                                    <span className="text-dark">{status.label}</span>
+                                                    <span className="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">{status.count}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="row g-4">
                     {/* Left Column - Create Poll Form */}
@@ -196,6 +341,21 @@ export default function AdminDashboard() {
                                         value={newPoll.description}
                                         onChange={(e) => setNewPoll(prev => ({ ...prev, description: e.target.value }))}
                                     />
+                                </div>
+
+                                {/* Expiry Date */}
+                                <div className="mb-4">
+                                    <label className="form-label fw-bold small text-uppercase text-muted">Data di Scadenza</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="form-control"
+                                        value={newPoll.expiresAt ? newPoll.expiresAt.slice(0, 16) : ''}
+                                        onChange={(e) => setNewPoll(prev => ({
+                                            ...prev,
+                                            expiresAt: e.target.value ? new Date(e.target.value).toISOString() : undefined
+                                        }))}
+                                    />
+                                    <small className="text-muted">Lascia vuoto per un sondaggio senza scadenza</small>
                                 </div>
 
                                 {/* Questions */}
@@ -368,25 +528,6 @@ export default function AdminDashboard() {
                                 </div>
                             )}
                         </div>
-
-                        {/* Quick Stats */}
-                        <div className="content-card p-4 mt-4">
-                            <h2 className="h6 fw-bold text-muted text-uppercase mb-3">Statistiche Rapide</h2>
-                            <div className="row g-3">
-                                <div className="col-6">
-                                    <div className="text-center p-3 bg-light rounded-3">
-                                        <div className="display-6 fw-bold text-dark">{polls.length}</div>
-                                        <span className="small text-muted">Sondaggi Attivi</span>
-                                    </div>
-                                </div>
-                                <div className="col-6">
-                                    <div className="text-center p-3 bg-light rounded-3">
-                                        <div className="display-6 fw-bold text-dark">–</div>
-                                        <span className="small text-muted">Voti Totali</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -399,6 +540,15 @@ export default function AdminDashboard() {
            border-radius: 20px;
            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
            border: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .stat-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .x-small { font-size: 0.75rem; }

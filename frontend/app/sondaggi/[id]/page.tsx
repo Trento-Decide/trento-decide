@@ -249,43 +249,75 @@ export default function PollDetail() {
                                         </div>
 
                                         <div className="d-flex flex-column gap-2">
-                                            {question.options?.map((option) => {
-                                                const isSelected = selectedOptions[question.id] === option.id
-                                                return (
-                                                    <button
-                                                        key={option.id}
-                                                        onClick={() => handleOptionSelect(question.id, option.id)}
-                                                        disabled={userHasVoted}
-                                                        className={`option-btn d-flex align-items-center gap-3 p-3 rounded-3 border text-start w-100 ${isSelected ? 'selected' : ''} ${userHasVoted ? 'voted' : ''}`}
-                                                        style={{
-                                                            backgroundColor: isSelected ? `color-mix(in srgb, ${catColor}, white 90%)` : 'white',
-                                                            borderColor: isSelected ? catColor : '#e0e0e0',
-                                                            transition: 'all 0.2s ease'
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className="option-radio flex-shrink-0 d-flex align-items-center justify-content-center"
+                                            {(() => {
+                                                const totalVotes = question.options?.reduce((sum, o) => sum + (o.voteCount || 0), 0) || 0
+                                                return question.options?.map((option) => {
+                                                    const isSelected = selectedOptions[question.id] === option.id
+                                                    const voteCount = option.voteCount || 0
+                                                    const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0
+
+                                                    return (
+                                                        <button
+                                                            key={option.id}
+                                                            onClick={() => handleOptionSelect(question.id, option.id)}
+                                                            disabled={userHasVoted}
+                                                            className={`option-btn d-flex align-items-center gap-3 p-3 rounded-3 border text-start w-100 position-relative overflow-hidden ${isSelected ? 'selected' : ''} ${userHasVoted ? 'voted' : ''}`}
                                                             style={{
-                                                                width: 24,
-                                                                height: 24,
-                                                                borderRadius: '50%',
-                                                                border: isSelected ? `2px solid ${catColor}` : '2px solid #ccc',
-                                                                backgroundColor: isSelected ? catColor : 'transparent',
+                                                                backgroundColor: isSelected ? `color-mix(in srgb, ${catColor}, white 90%)` : 'white',
+                                                                borderColor: isSelected ? catColor : '#e0e0e0',
                                                                 transition: 'all 0.2s ease'
                                                             }}
                                                         >
-                                                            {isSelected && (
-                                                                <svg className="icon icon-xs" style={{ width: 12, height: 12, fill: 'white' }}>
-                                                                    <use href="/svg/sprites.svg#it-check"></use>
-                                                                </svg>
+                                                            {/* Progress bar background (only after voting) */}
+                                                            {userHasVoted && (
+                                                                <div
+                                                                    className="position-absolute top-0 start-0 h-100"
+                                                                    style={{
+                                                                        width: `${percentage}%`,
+                                                                        backgroundColor: `color-mix(in srgb, ${catColor}, white 85%)`,
+                                                                        transition: 'width 0.5s ease',
+                                                                        zIndex: 0
+                                                                    }}
+                                                                />
                                                             )}
-                                                        </div>
-                                                        <span className={`fw-medium ${isSelected ? 'text-dark' : 'text-secondary'}`}>
-                                                            {option.text}
-                                                        </span>
-                                                    </button>
-                                                )
-                                            })}
+
+                                                            <div
+                                                                className="option-radio flex-shrink-0 d-flex align-items-center justify-content-center position-relative"
+                                                                style={{
+                                                                    width: 24,
+                                                                    height: 24,
+                                                                    borderRadius: '50%',
+                                                                    border: isSelected ? `2px solid ${catColor}` : '2px solid #ccc',
+                                                                    backgroundColor: isSelected ? catColor : 'transparent',
+                                                                    transition: 'all 0.2s ease',
+                                                                    zIndex: 1
+                                                                }}
+                                                            >
+                                                                {isSelected && (
+                                                                    <svg className="icon icon-xs" style={{ width: 12, height: 12, fill: 'white' }}>
+                                                                        <use href="/svg/sprites.svg#it-check"></use>
+                                                                    </svg>
+                                                                )}
+                                                            </div>
+                                                            <span className={`fw-medium position-relative ${isSelected ? 'text-dark' : 'text-secondary'}`} style={{ zIndex: 1, flex: 1 }}>
+                                                                {option.text}
+                                                            </span>
+
+                                                            {/* Vote count badge (only after voting) */}
+                                                            {userHasVoted && (
+                                                                <div className="d-flex align-items-center gap-2 position-relative" style={{ zIndex: 1 }}>
+                                                                    <span className="badge bg-white text-dark fw-bold px-2 py-1 rounded-pill shadow-sm" style={{ fontSize: '0.8rem' }}>
+                                                                        {percentage}%
+                                                                    </span>
+                                                                    <span className="text-muted small">
+                                                                        ({voteCount} {voteCount === 1 ? 'voto' : 'voti'})
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    )
+                                                })
+                                            })()}
                                         </div>
 
                                         {userHasVoted && (

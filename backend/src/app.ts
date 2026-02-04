@@ -11,6 +11,7 @@ import sondaggiRouter from "./routes/sondaggi.js"
 import allegatiRouter from "./routes/allegati.js"
 import notificheRouter from "./routes/notifiche.js"
 import configRouter from "./routes/config.js"
+import dashboardRouter from "./routes/dashboard.js"
 
 export function createApp(): Application {
   const app = express()
@@ -45,6 +46,8 @@ export function createApp(): Application {
   app.use("/", allegatiRouter)
 
   app.use("/config", configRouter)
+
+  app.use("/dashboard", dashboardRouter)
 
   app.use((req, res) => {
     res.status(404).json({ error: "Endpoint not found" })

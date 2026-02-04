@@ -318,3 +318,33 @@ export const votePoll = async (pollId: number, questionId: number, selectedOptio
     body: JSON.stringify({ questionId, selectedOptionId })
   })
 }
+
+export interface DashboardStats {
+  users: {
+    total: number
+    citizens: number
+    moderators: number
+    admins: number
+  }
+  proposals: {
+    total: number
+    published: number
+    drafts: number
+    byCategory: { code: string; label: string; count: number }[]
+    byStatus: { code: string; label: string; count: number }[]
+  }
+  polls: {
+    total: number
+    active: number
+    closed: number
+  }
+  votes: {
+    proposalVotes: number
+    pollVotes: number
+  }
+}
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  const url = `${apiUrl}/dashboard/stats`
+  return apiFetch(url, { method: "GET", headers: getAuthHeaders(false) })
+}

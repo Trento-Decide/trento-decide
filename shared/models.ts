@@ -234,6 +234,7 @@ export interface PollOption {
   questionId: ID
   text: string
   orderIndex: number
+  voteCount?: number
 }
 
 export interface PollAnswer {
@@ -350,6 +351,7 @@ export interface PollSearchItem {
   date?: string
   timestamp?: ISODateString
   isFavourited?: boolean
+  totalVotes?: number
 }
 
 export interface NotificationType {

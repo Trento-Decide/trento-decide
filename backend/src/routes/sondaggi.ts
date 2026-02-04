@@ -87,7 +87,14 @@ router.get(
           c.id AS category_id,
           c.labels AS category_labels,
           c.code AS category_code, 
-          c.colour AS category_colour
+          c.colour AS category_colour,
+
+          (
+            SELECT COUNT(DISTINCT pa.user_id)
+            FROM poll_answers pa
+            INNER JOIN poll_questions pq ON pa.question_id = pq.id
+            WHERE pq.poll_id = p.id
+          ) AS total_votes
         FROM polls p
         LEFT JOIN categories c ON p.category_id = c.id
         LEFT JOIN users u ON p.created_by = u.id
@@ -112,6 +119,8 @@ router.get(
         category_labels: LocalizedText
         category_code: string
         category_colour: string
+
+        total_votes: string | number
       }
 
       const items: PollSearchItem[] = result.rows.map((row) => {
@@ -137,6 +146,7 @@ router.get(
           isActive: r.is_active,
           date: new Date(r.created_at).toLocaleDateString("it-IT"),
           timestamp: new Date(r.created_at).toISOString(),
+          totalVotes: Number(r.total_votes),
 
           author: authorRef,
 
@@ -205,6 +215,11 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
       order_index: number;
     }
 
+    interface VoteCountRow {
+      selected_option_id: number;
+      count: string;
+    }
+
     if (questionIds.length > 0) {
       const optionsResult = await pool.query(
         `
@@ -218,6 +233,25 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
 
       const optionsRows = optionsResult.rows as OptionRow[]
 
+      // Get vote counts for all options
+      const optionIds = optionsRows.map(o => o.id)
+      let voteCounts: Record<number, number> = {}
+
+      if (optionIds.length > 0) {
+        const voteCountsResult = await pool.query(
+          `
+          SELECT selected_option_id, COUNT(*) as count
+          FROM poll_answers
+          WHERE selected_option_id = ANY($1::int[])
+          GROUP BY selected_option_id
+          `,
+          [optionIds]
+        )
+        for (const row of voteCountsResult.rows as VoteCountRow[]) {
+          voteCounts[row.selected_option_id] = Number(row.count)
+        }
+      }
+
       for (const opt of optionsRows) {
         if (!optionsMap[opt.question_id]) {
           optionsMap[opt.question_id] = []
@@ -227,6 +261,7 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
           questionId: opt.question_id,
           text: opt.text,
           orderIndex: opt.order_index,
+          voteCount: voteCounts[opt.id] || 0,
         })
       }
     }
