@@ -196,7 +196,7 @@ export default function UserMenu({ mobileMode = false }: UserMenuProps) {
             >
               {profileLinks.map((link, index) => {
                 const isProfilePage = pathname === "/profilo"
-                const finalHref = isProfilePage ? link.hash : link.href
+                const finalHref = isProfilePage && link.hash ? link.hash : link.href
                 const commonProps = {
                   className: "dropdown-item menu-item-green d-flex align-items-center gap-2 py-1 px-2 rounded",
                   onClick: () => setIsOpen(false),
