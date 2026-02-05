@@ -14,24 +14,28 @@
 
 **Unix/macOS/Linux:**
 ```bash
-./frontend/dev.sh
+cd frontend
+./dev.sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-.\frontend\dev.ps1
+cd frontend
+.\dev.ps1
 ```
 
 ### Back-end
 
 **Unix/macOS/Linux:**
 ```bash
-./backend/dev.sh
+cd backend
+./dev.sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-.\backend\dev.ps1
+cd backend
+.\dev.ps1
 ```
 
 Per (ri)caricare lo schema del DB con i dati fasulli, usa la flag `--init-db` / `-InitDb`.
