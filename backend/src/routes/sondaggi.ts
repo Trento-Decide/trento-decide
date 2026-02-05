@@ -11,11 +11,11 @@ import type {
 
 const router = express.Router()
 
-router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: string }>, res: Response<{ data: Poll; userHasVoted: boolean } | { error: string }>) => {
+router.get("/:id", authenticateToken, async (req: Request<{ id: string }>, res: Response<{ data: Poll; userHasVoted: boolean } | { error: string }>) => {
   try {
     const id = Number(req.params.id)
     const userId = req.user ? Number(req.user.sub) : undefined
-    
+
     if (!Number.isInteger(id)) return res.status(400).json({ error: "ID non valido" })
 
     const pollResult = await pool.query(
@@ -53,9 +53,9 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
 
     const questionsData = questionsResult.rows as QuestionRow[]
     const questionIds: number[] = questionsData.map((q) => q.id)
-    
+
     const optionsMap: Record<number, PollOption[]> = {}
-    
+
     interface OptionRow {
       id: number;
       question_id: number;
@@ -78,7 +78,7 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
 
       for (const opt of optionsRows) {
         if (!optionsMap[opt.question_id]) {
-            optionsMap[opt.question_id] = []
+          optionsMap[opt.question_id] = []
         }
         optionsMap[opt.question_id]!.push({
           id: opt.id,
@@ -94,7 +94,7 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
       pollId: p.id,
       text: q.text,
       orderIndex: q.order_index ?? 0,
-      options: optionsMap[q.id] || [] 
+      options: optionsMap[q.id] || []
     }))
 
     let userHasVoted = false
@@ -114,23 +114,23 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
     const poll: Poll = {
       id: p.id,
       title: p.title,
-      
+
       ...(p.description ? { description: p.description } : {}),
-      
+
       ...(p.category_id ? {
-          category: {
-            id: p.category_id as ID,
-            code: p.category_code ?? "unknown",
-            ...(p.category_label ? { labels: p.category_label } : {}),
-            ...(p.category_color ? { colour: p.category_color } : {})
-          }
+        category: {
+          id: p.category_id as ID,
+          code: p.category_code ?? "unknown",
+          ...(p.category_label ? { labels: p.category_label } : {}),
+          ...(p.category_color ? { colour: p.category_color } : {})
+        }
       } : {}),
 
       createdBy: { id: p.author_id as ID, username: p.author_name },
       isActive: p.is_active,
-      
+
       ...(p.expires_at ? { expiresAt: new Date(p.expires_at).toISOString() } : {}),
-      
+
       createdAt: new Date(p.created_at).toISOString(),
       questions: fullQuestions
     }
@@ -216,7 +216,7 @@ router.post("/:id/vota", authenticateToken, async (req: Request<{ id: string }, 
     const pollCheck = await pool.query(`SELECT is_active, expires_at FROM polls WHERE id = $1`, [pollId])
     if (pollCheck.rowCount === 0) return res.status(404).json({ error: "Sondaggio non trovato" })
     const poll = pollCheck.rows[0]
-    
+
     if (!poll.is_active) return res.status(400).json({ error: "Sondaggio chiuso" })
     if (poll.expires_at && new Date() > new Date(poll.expires_at)) {
       return res.status(400).json({ error: "Sondaggio scaduto" })

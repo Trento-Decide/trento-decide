@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from "express";
 import { pool } from "../database.js";
-import { conditionalAuthenticateToken } from "../middleware/authMiddleware.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
 import type {
   GlobalSearchItem,
   GlobalFilters,
@@ -107,7 +107,7 @@ function parseFilters(q: Record<string, unknown>): GlobalFilters {
 
   const isActive = parseBoolean(q.isActive);
   if (isActive !== undefined) {
-      filters.isActive = isActive;
+    filters.isActive = isActive;
   }
 
   return filters;
@@ -115,12 +115,12 @@ function parseFilters(q: Record<string, unknown>): GlobalFilters {
 
 router.get(
   "/",
-  conditionalAuthenticateToken,
+  authenticateToken,
   async (req: Request, res: Response<{ data: GlobalSearchItem[] } | { error: string }>) => {
     try {
       const filters = parseFilters(req.query as Record<string, unknown>);
       const currentUserId = (req as unknown as RequestWithUser).user?.id;
-      
+
       const values: unknown[] = [];
       const addParam = (val: unknown) => {
         values.push(val);
@@ -128,8 +128,8 @@ router.get(
       };
 
       const propParts: string[] = [];
-      
-      const skipProposalsDueToFilters = filters.isActive !== undefined; 
+
+      const skipProposalsDueToFilters = filters.isActive !== undefined;
 
       if (!skipProposalsDueToFilters && (filters.type === "all" || filters.type === "proposta")) {
         const where: string[] = ["1=1"];
@@ -154,8 +154,8 @@ router.get(
         }
 
         if (filters.statusCode) {
-           const idx = addParam(filters.statusCode);
-           where.push(`s.code = ${idx}`);
+          const idx = addParam(filters.statusCode);
+          where.push(`s.code = ${idx}`);
         }
 
         if (filters.dateFrom) {
@@ -166,19 +166,19 @@ router.get(
           const idx = addParam(filters.dateTo);
           where.push(`p.created_at < (${idx}::timestamptz + INTERVAL '1 day')`);
         }
-        
+
         if (filters.minVotes !== undefined) {
-           const idx = addParam(filters.minVotes);
-           where.push(`p.vote_value >= ${idx}`);
+          const idx = addParam(filters.minVotes);
+          where.push(`p.vote_value >= ${idx}`);
         }
         if (filters.maxVotes !== undefined) {
-           const idx = addParam(filters.maxVotes);
-           where.push(`p.vote_value <= ${idx}`);
+          const idx = addParam(filters.maxVotes);
+          where.push(`p.vote_value <= ${idx}`);
         }
 
-        const favColumn = currentUserId 
-            ? `EXISTS(SELECT 1 FROM favourites f WHERE f.proposal_id = p.id AND f.user_id = ${addParam(currentUserId)})`
-            : `false`;
+        const favColumn = currentUserId
+          ? `EXISTS(SELECT 1 FROM favourites f WHERE f.proposal_id = p.id AND f.user_id = ${addParam(currentUserId)})`
+          : `false`;
 
         propParts.push(`
           SELECT 
@@ -290,7 +290,7 @@ router.get(
 
       const dir = filters.sortOrder === "asc" ? "ASC" : "DESC";
       let orderByClause = `ORDER BY created_at ${dir}`;
-      
+
       if (filters.sortBy === "title") {
         orderByClause = `ORDER BY title ${dir}`;
       } else if (filters.sortBy === "votes") {
@@ -314,7 +314,7 @@ router.get(
         description: string;
         created_at: Date;
         vote_value: number | null;
-        
+
         author_id: number;
         author_username: string;
 
@@ -334,18 +334,18 @@ router.get(
       }
 
       const items: GlobalSearchItem[] = result.rows.map((row: SearchRow) => {
-        
+
         const authorRef = {
-            id: row.author_id,
-            username: row.author_username,
+          id: row.author_id,
+          username: row.author_username,
         } as UserRef;
 
         const categoryRef: CategoryRef | undefined = row.category_id ? {
-            id: row.category_id,
-            code: row.category_code!,
-            labels: row.category_labels!,
-            colour: row.category_colour!
-        } as CategoryRef: undefined;
+          id: row.category_id,
+          code: row.category_code!,
+          labels: row.category_labels!,
+          colour: row.category_colour!
+        } as CategoryRef : undefined;
 
         const baseFields = {
           id: row.id,
@@ -357,36 +357,36 @@ router.get(
         };
 
         if (row.item_type === "proposta") {
-           const statusRef: StatusRef | undefined = row.status_code ? {
-               id: row.status_id!,
-               code: row.status_code,
-               labels: row.status_labels!,
-               colour: row.status_colour!
-           } as StatusRef : undefined;
+          const statusRef: StatusRef | undefined = row.status_code ? {
+            id: row.status_id!,
+            code: row.status_code,
+            labels: row.status_labels!,
+            colour: row.status_colour!
+          } as StatusRef : undefined;
 
-           const p: ProposalSearchItem = {
-             type: "proposta",
-             ...baseFields,
-             voteValue: row.vote_value !== null ? Number(row.vote_value) : 0,
-             author: authorRef,
-             ...(categoryRef ? { category: categoryRef } : {}),
-             ...(statusRef ? { status: statusRef } : {})
-           };
-           return p;
+          const p: ProposalSearchItem = {
+            type: "proposta",
+            ...baseFields,
+            voteValue: row.vote_value !== null ? Number(row.vote_value) : 0,
+            author: authorRef,
+            ...(categoryRef ? { category: categoryRef } : {}),
+            ...(statusRef ? { status: statusRef } : {})
+          };
+          return p;
         } else {
-           const isExpired = row.poll_expires_at ? new Date(row.poll_expires_at) < new Date() : false;
-           const isActive = (row.poll_is_active === true) && !isExpired;
+          const isExpired = row.poll_expires_at ? new Date(row.poll_expires_at) < new Date() : false;
+          const isActive = (row.poll_is_active === true) && !isExpired;
 
-           const p: PollSearchItem = {
-             type: "sondaggio",
-             ...baseFields,
-             isActive: isActive,
-             timestamp: new Date(row.created_at).toISOString(),
-             author: authorRef,
-             ...(categoryRef ? { category: categoryRef } : {}),
-             ...(row.poll_expires_at ? { expiresAt: row.poll_expires_at.toISOString() } : {})
-           };
-           return p;
+          const p: PollSearchItem = {
+            type: "sondaggio",
+            ...baseFields,
+            isActive: isActive,
+            timestamp: new Date(row.created_at).toISOString(),
+            author: authorRef,
+            ...(categoryRef ? { category: categoryRef } : {}),
+            ...(row.poll_expires_at ? { expiresAt: row.poll_expires_at.toISOString() } : {})
+          };
+          return p;
         }
       });
 

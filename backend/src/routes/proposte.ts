@@ -233,7 +233,7 @@ router.put(
 
 router.get(
   "/",
-  conditionalAuthenticateToken,
+  authenticateToken,
   async (
     req: Request<unknown, unknown, unknown, Record<string, unknown>>,
     res: Response<ProposalSearchItem[] | { error: string }>,
@@ -363,7 +363,7 @@ router.get(
         vote_value: number
         created_at: Date
         is_favourited: boolean
-        
+
         author_id: number
         author_username: string
 
@@ -380,24 +380,24 @@ router.get(
 
       const items: ProposalSearchItem[] = result.rows.map((row) => {
         const r = row as ProposalRow
-        
+
         const authorRef: UserRef = {
-            id: r.author_id,
-            username: r.author_username,
+          id: r.author_id,
+          username: r.author_username,
         }
 
         const categoryRef: CategoryRef | undefined = r.category_id ? {
-            id: r.category_id,
-            code: r.category_code,
-            labels: r.category_labels,
-            colour: r.category_colour
+          id: r.category_id,
+          code: r.category_code,
+          labels: r.category_labels,
+          colour: r.category_colour
         } as CategoryRef : undefined
 
         const statusRef: StatusRef | undefined = r.status_id ? {
-            id: r.status_id,
-            code: r.status_code,
-            labels: r.status_labels,
-            colour: r.status_colour
+          id: r.status_id,
+          code: r.status_code,
+          labels: r.status_labels,
+          colour: r.status_colour
         } as StatusRef : undefined
 
         return {
@@ -409,9 +409,9 @@ router.get(
           date: new Date(r.created_at).toLocaleDateString("it-IT"),
           createdAt: new Date(r.created_at).toISOString(),
           isFavourited: Boolean(r.is_favourited),
-          
+
           author: authorRef,
-          
+
           ...(categoryRef ? { category: categoryRef } : {}),
           ...(statusRef ? { status: statusRef } : {})
         }
@@ -427,8 +427,8 @@ router.get(
 
 router.get(
   "/:id",
-  conditionalAuthenticateToken,
-  async (req: Request<{ id: string }>, res: Response<Proposal | { error:string }>) => {
+  authenticateToken,
+  async (req: Request<{ id: string }>, res: Response<Proposal | { error: string }>) => {
     try {
       const id = Number(req.params.id)
       const userId = req.user ? Number(req.user.sub) : undefined
@@ -688,7 +688,7 @@ router.post(
         `INSERT INTO favourites (user_id, proposal_id) 
          VALUES ($1, $2) 
          ON CONFLICT (user_id, proposal_id) WHERE proposal_id IS NOT NULL 
-         DO NOTHING`, 
+         DO NOTHING`,
         [userId, proposalId]
       )
 
@@ -719,7 +719,7 @@ router.delete(
 
 router.get(
   "/:id/preferisco",
-  conditionalAuthenticateToken,
+  authenticateToken,
   async (req: Request<{ id: string }>, res: Response<{ isFavourited: boolean } | { error: string }>) => {
     try {
       const id = Number(req.params.id)
