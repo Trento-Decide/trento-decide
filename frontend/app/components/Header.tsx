@@ -9,9 +9,8 @@ import UserMenu from "@/app/components/UserMenu"
 import SearchBox from "@/app/components/SearchBox"
 
 const NAV_LINKS = [
-  { href: "/proposte?sortBy=votes&sortOrder=desc", label: "Popolari", bold: true },
+  { href: "/", label: "Home" },
   { href: "/proposte", label: "Proposte" },
-  { href: "/proposte/nuova", label: "Crea proposta" },
   { href: "/sondaggi", label: "Sondaggi" },
   { href: "/regolamento", label: "Regolamento" },
 ]
@@ -112,7 +111,7 @@ export default function Header() {
       <div className="container py-3 py-lg-5">
         <div className="row align-items-center">
           <div className="col-8 col-lg-5 d-flex align-items-center gap-3">
-             <button
+            <button
               className="btn btn-link p-0 d-lg-none border-0 hamburger-btn"
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -122,16 +121,16 @@ export default function Header() {
             >
               <svg className="hamburger-lines" width="28" height="28" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 {isMenuOpen ? (
-                   <>
-                     <line x1="18" y1="6" x2="6" y2="18"></line>
-                     <line x1="6" y1="6" x2="18" y2="18"></line>
-                   </>
+                  <>
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </>
                 ) : (
-                   <>
-                     <line x1="3" y1="12" x2="21" y2="12"></line>
-                     <line x1="3" y1="6" x2="21" y2="6"></line>
-                     <line x1="3" y1="18" x2="21" y2="18"></line>
-                   </>
+                  <>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </>
                 )}
               </svg>
             </button>
@@ -158,7 +157,7 @@ export default function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`nav-link-minimal ${isActive(link.href) ? "active" : ""} ${link.bold ? "fw-bold" : ""}`}
+                className={`nav-link-minimal ${isActive(link.href) ? "active" : ""}`}
                 aria-current={isActive(link.href) ? "page" : undefined}
               >
                 {link.label}
@@ -177,7 +176,7 @@ export default function Header() {
               className="mobile-search-input"
               placeholder="Cerca..."
               value={mobileSearch}
-              onChange={(e)=>setMobileSearch(e.target.value)}
+              onChange={(e) => setMobileSearch(e.target.value)}
               aria-label="Cerca nel sito"
             />
           </form>
@@ -188,7 +187,7 @@ export default function Header() {
               <li key={link.href} className="mb-1">
                 <Link
                   href={link.href}
-                  className={`d-flex align-items-center gap-2 p-2 rounded text-decoration-none ${isActive(link.href) ? 'bg-light fw-bold text-success' : 'text-dark'} ${link.bold ? "fw-bold" : ""}`}
+                  className={`d-flex align-items-center gap-2 p-2 rounded text-decoration-none ${isActive(link.href) ? 'bg-light fw-bold text-success' : 'text-dark'}`}
                   onClick={() => setIsMenuOpen(false)}
                   aria-current={isActive(link.href) ? "page" : undefined}
                 >
