@@ -222,3 +222,4 @@ VALUES
   ('system_warning',     '{"it":"Avviso di sistema"}'::jsonb)
 ON CONFLICT (code) DO UPDATE
 SET labels = EXCLUDED.labels;
+

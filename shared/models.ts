@@ -210,6 +210,7 @@ export interface PollQuestion {
   pollId: ID
   text: string
   orderIndex: number
+  options?: PollOption[]
 }
 
 export interface PollOption {
@@ -217,6 +218,7 @@ export interface PollOption {
   questionId: ID
   text: string
   orderIndex: number
+  voteCount?: number
 }
 
 export interface PollAnswer {
@@ -327,6 +329,7 @@ export interface PollSearchItem {
   date?: string
   timestamp?: ISODateString
   isFavourited?: boolean
+  totalVotes?: number
 }
 
 export class ApiError extends Error {
@@ -344,3 +347,28 @@ export class ApiError extends Error {
 }
 
 export type GlobalSearchItem = ProposalSearchItem | PollSearchItem
+
+export interface DashboardStats {
+  users: {
+    total: number
+    citizens: number
+    moderators: number
+    admins: number
+  }
+  proposals: {
+    total: number
+    published: number
+    drafts: number
+    byCategory: { code: string; label: string; count: number }[]
+    byStatus: { code: string; label: string; count: number }[]
+  }
+  polls: {
+    total: number
+    active: number
+    closed: number
+  }
+  votes: {
+    proposalVotes: number
+    pollVotes: number
+  }
+}

@@ -1,6 +1,6 @@
 INSERT INTO users (username, email, password_hash, role_id, email_opt_in) VALUES
-('admin', 'admin@example.com', 
- '$2b$10$QYwn4Zp/jIg9NKRb0zrZauBhjegjsMbhr5lQSpZirMLguCSeBejxa', 
+('amministratore', 'admin@trentodecide.it', 
+ '$2b$10$9LLKaiJNpQqwM9/KNwPcyeXc.nlFNfPxzqiG4.WibZS7mJRznG25C', 
  (SELECT id FROM roles WHERE code = 'admin'), TRUE),
 
 ('mod_marta', 'marta.moderatore@example.com', 

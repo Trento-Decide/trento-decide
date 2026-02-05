@@ -10,7 +10,13 @@ import {
   Category,
   CategoryFormSchema,
   ProposalInput,
-  ApiError
+  ApiError,
+  PollFilters,
+  PollSearchItem,
+  Poll,
+  PollCreateInput,
+  ID,
+  DashboardStats
 } from "../../shared/models"
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL
@@ -269,7 +275,54 @@ export const deleteProfile = async () => {
     return
   }
   return handleResponse(res).catch((err) => {
-      if (err instanceof ApiError) throw err
-      throw new ApiError(err instanceof Error ? err.message : "Si è verificato un errore imprevisto")
+    if (err instanceof ApiError) throw err
+    throw new ApiError(err instanceof Error ? err.message : "Si è verificato un errore imprevisto")
   })
+}
+
+export const getPolls = async (filters: PollFilters = {}): Promise<PollSearchItem[]> => {
+  const url = new URL(`${apiUrl}/sondaggi`)
+
+  Object.keys(filters).forEach(key => {
+    const value = filters[key as keyof PollFilters]
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.append(key, String(value))
+    }
+  })
+
+  return apiFetch(url.toString(), {
+    method: "GET",
+    headers: getAuthHeaders(false),
+    cache: "no-store"
+  })
+}
+
+export const getPoll = async (id: number): Promise<{ data: Poll; userHasVoted: boolean }> => {
+  const url = `${apiUrl}/sondaggi/${id}`
+  return apiFetch(url, { method: "GET", headers: getAuthHeaders(false) })
+}
+
+export const createPoll = async (input: PollCreateInput): Promise<{ success: true; pollId: ID }> => {
+  const url = `${apiUrl}/sondaggi`
+  return apiFetch(url, {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify(input)
+  })
+}
+
+export const votePoll = async (pollId: number, questionId: number, selectedOptionId: number): Promise<{ success: boolean }> => {
+  const url = `${apiUrl}/sondaggi/${pollId}/vota`
+  return apiFetch(url, {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify({ questionId, selectedOptionId })
+  })
+}
+
+
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  const url = `${apiUrl}/dashboard/stats`
+  return apiFetch(url, { method: "GET", headers: getAuthHeaders(false) })
 }

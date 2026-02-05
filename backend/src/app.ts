@@ -9,6 +9,7 @@ import proposteRouter from "./routes/proposte.js"
 import cercaRouter from "./routes/cerca.js"
 import sondaggiRouter from "./routes/sondaggi.js"
 import configRouter from "./routes/config.js"
+import dashboardRouter from "./routes/dashboard.js"
 
 export function createApp(): Application {
   const app = express()
@@ -39,6 +40,8 @@ export function createApp(): Application {
   app.use("/cerca", cercaRouter)
 
   app.use("/config", configRouter)
+
+  app.use("/dashboard", dashboardRouter)
 
   app.use((req, res) => {
     res.status(404).json({ error: "Endpoint not found" })
