@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
@@ -112,7 +112,7 @@ export default function Header() {
       <div className="container py-3 py-lg-5">
         <div className="row align-items-center">
           <div className="col-8 col-lg-5 d-flex align-items-center gap-3">
-             <button
+            <button
               className="btn btn-link p-0 d-lg-none border-0 hamburger-btn"
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -122,16 +122,16 @@ export default function Header() {
             >
               <svg className="hamburger-lines" width="28" height="28" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 {isMenuOpen ? (
-                   <>
-                     <line x1="18" y1="6" x2="6" y2="18"></line>
-                     <line x1="6" y1="6" x2="18" y2="18"></line>
-                   </>
+                  <>
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </>
                 ) : (
-                   <>
-                     <line x1="3" y1="12" x2="21" y2="12"></line>
-                     <line x1="3" y1="6" x2="21" y2="6"></line>
-                     <line x1="3" y1="18" x2="21" y2="18"></line>
-                   </>
+                  <>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </>
                 )}
               </svg>
             </button>
@@ -142,7 +142,9 @@ export default function Header() {
           </div>
 
           <div className="d-none d-lg-flex col-lg-7 justify-content-end">
-            <SearchBox />
+            <Suspense fallback={<div style={{ width: 280, height: 40 }} />}>
+              <SearchBox />
+            </Suspense>
           </div>
 
           <div className="col-4 d-lg-none d-flex justify-content-end">
@@ -177,7 +179,7 @@ export default function Header() {
               className="mobile-search-input"
               placeholder="Cerca..."
               value={mobileSearch}
-              onChange={(e)=>setMobileSearch(e.target.value)}
+              onChange={(e) => setMobileSearch(e.target.value)}
               aria-label="Cerca nel sito"
             />
           </form>

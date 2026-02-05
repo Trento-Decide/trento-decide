@@ -53,7 +53,7 @@ export default function LogIn() {
     if (!isFormValid) return
 
     setApiError(null)
-    
+
     const result = loginSchema.safeParse(formData)
     if (!result.success) {
       const errors: FieldErrors = {}
@@ -84,8 +84,8 @@ export default function LogIn() {
           <h1 className="h3 fw-bold mb-3 text-dark text-center pt-2">Accedi</h1>
 
           <form onSubmit={handleSubmit} noValidate>
-            
-            <AuthInput 
+
+            <AuthInput
               label="Indirizzo email"
               name="email"
               type="email"
@@ -98,29 +98,29 @@ export default function LogIn() {
 
             <div className="mb-3">
               <div style={{ position: 'relative' }}>
-                 <AuthInput 
-                    label="Password"
-                    name="password"
-                    isPassword
-                    value={formData.password}
-                    onChange={handleChange}
-                    onBlur={(e) => validateSingleField(e.target.name, e.target.value)}
-                    error={fieldErrors.password}
-                    required
-                  />
+                <AuthInput
+                  label="Password"
+                  name="password"
+                  isPassword
+                  value={formData.password}
+                  onChange={handleChange}
+                  onBlur={(e) => validateSingleField(e.target.name, e.target.value)}
+                  error={fieldErrors.password}
+                  required
+                />
               </div>
             </div>
 
             {apiError && <ErrorDisplay error={apiError} className="mb-3" />}
 
             <div className="d-grid mb-3">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="btn text-white fw-bold shadow-sm"
                 disabled={!isFormValid}
-                style={{ 
-                  backgroundColor: isFormValid ? theme.primary : "#cccccc", 
-                  borderRadius: "6px", 
+                style={{
+                  backgroundColor: isFormValid ? theme.primary : "#cccccc",
+                  borderRadius: "6px",
                   height: "48px",
                   cursor: isFormValid ? 'pointer' : 'not-allowed',
                   opacity: isFormValid ? 1 : 0.8
@@ -129,13 +129,7 @@ export default function LogIn() {
                 Accedi
               </button>
             </div>
-            
-            <div className="text-center mb-2">
-              <span className="small text-muted me-1">Non hai un account?</span>
-              <Link href="/registrati" className="link-green">
-                 Registrati qui
-              </Link>
-            </div>
+
             <div className="d-flex align-items-center mb-3">
               <hr className="flex-grow-1 border-secondary opacity-25" />
               <span className="px-2 small text-muted">oppure</span>
@@ -144,21 +138,21 @@ export default function LogIn() {
 
             <div className="d-flex flex-column align-items-center gap-2">
               <button type="button" className="btn text-white d-flex align-items-center p-0 overflow-hidden shadow-sm" style={{ backgroundColor: "#005eb8", borderRadius: "4px", height: "48px", width: '85%' }}>
-                 <div className="d-flex align-items-center justify-content-center h-100" style={{ backgroundColor: "#005eb8", width: "48px", borderRight: '1px solid rgba(255,255,255,0.2)' }}>
-                    <svg className="icon icon-white" style={{width: '24px', height: '24px'}} aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                    </svg>
-                 </div>
-                 <span className="flex-grow-1 text-center fw-bold">Entra con SPID</span>
+                <div className="d-flex align-items-center justify-content-center h-100" style={{ backgroundColor: "#005eb8", width: "48px", borderRight: '1px solid rgba(255,255,255,0.2)' }}>
+                  <svg className="icon icon-white" style={{ width: '24px', height: '24px' }} aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                  </svg>
+                </div>
+                <span className="flex-grow-1 text-center fw-bold">Entra con SPID</span>
               </button>
               <button type="button" className="btn text-white d-flex align-items-center p-0 overflow-hidden shadow-sm" style={{ backgroundColor: "#005eb8", borderRadius: "4px", height: "48px", width: '85%' }}>
-                 <div className="d-flex align-items-center justify-content-center h-100" style={{ backgroundColor: "#005eb8", width: "48px", borderRight: '1px solid rgba(255,255,255,0.2)' }}>
-                    <div className="d-flex flex-column align-items-center justify-content-center lh-1">
-                       <span className="fw-bold" style={{ fontSize: '11px' }}>Cie</span>
-                       <span className="fw-bold" style={{ fontSize: '11px' }}>ID</span>
-                    </div>
-                 </div>
-                 <span className="flex-grow-1 text-center fw-bold">Entra con CIE</span>
+                <div className="d-flex align-items-center justify-content-center h-100" style={{ backgroundColor: "#005eb8", width: "48px", borderRight: '1px solid rgba(255,255,255,0.2)' }}>
+                  <div className="d-flex flex-column align-items-center justify-content-center lh-1">
+                    <span className="fw-bold" style={{ fontSize: '11px' }}>Cie</span>
+                    <span className="fw-bold" style={{ fontSize: '11px' }}>ID</span>
+                  </div>
+                </div>
+                <span className="flex-grow-1 text-center fw-bold">Entra con CIE</span>
               </button>
             </div>
 

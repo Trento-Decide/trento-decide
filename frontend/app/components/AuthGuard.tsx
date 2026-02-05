@@ -13,23 +13,20 @@ interface AuthGuardProps {
 export default function AuthGuard({ children }: AuthGuardProps) {
     const pathname = usePathname()
     const router = useRouter()
-    const [isChecking, setIsChecking] = useState(true)
-    const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const isPublicPath = PUBLIC_PATHS.some(path => pathname?.startsWith(path))
+    const [isChecking, setIsChecking] = useState(!isPublicPath)
 
     useEffect(() => {
         const token = getAccessToken()
-        const isPublicPath = PUBLIC_PATHS.some(path => pathname?.startsWith(path))
 
         if (!token && !isPublicPath) {
             router.replace("/accedi")
-        } else {
-            setIsAuthenticated(!!token || isPublicPath)
+        } else if (isChecking) {
             setIsChecking(false)
         }
-    }, [pathname, router])
+    }, [pathname, router, isPublicPath, isChecking])
 
-    // Show nothing while checking auth on protected routes
-    if (isChecking && !PUBLIC_PATHS.some(path => pathname?.startsWith(path))) {
+    if (isChecking) {
         return null
     }
 
