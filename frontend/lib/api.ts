@@ -15,7 +15,8 @@ import {
   PollSearchItem,
   Poll,
   PollCreateInput,
-  ID
+  ID,
+  DashboardStats
 } from "../../shared/models"
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL
@@ -319,30 +320,7 @@ export const votePoll = async (pollId: number, questionId: number, selectedOptio
   })
 }
 
-export interface DashboardStats {
-  users: {
-    total: number
-    citizens: number
-    moderators: number
-    admins: number
-  }
-  proposals: {
-    total: number
-    published: number
-    drafts: number
-    byCategory: { code: string; label: string; count: number }[]
-    byStatus: { code: string; label: string; count: number }[]
-  }
-  polls: {
-    total: number
-    active: number
-    closed: number
-  }
-  votes: {
-    proposalVotes: number
-    pollVotes: number
-  }
-}
+
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   const url = `${apiUrl}/dashboard/stats`

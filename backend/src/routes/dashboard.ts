@@ -1,33 +1,9 @@
 import express, { type Request, type Response } from "express"
 import { pool } from "../database.js"
 import { authenticateToken, requireAdmin } from "../middleware/authMiddleware.js"
+import type { DashboardStats } from "../../../shared/models.js"
 
 const router = express.Router()
-
-interface DashboardStats {
-    users: {
-        total: number
-        citizens: number
-        moderators: number
-        admins: number
-    }
-    proposals: {
-        total: number
-        published: number
-        drafts: number
-        byCategory: { code: string; label: string; count: number }[]
-        byStatus: { code: string; label: string; count: number }[]
-    }
-    polls: {
-        total: number
-        active: number
-        closed: number
-    }
-    votes: {
-        proposalVotes: number
-        pollVotes: number
-    }
-}
 
 router.get(
     "/stats",
