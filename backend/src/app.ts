@@ -8,8 +8,6 @@ import utenteRouter from "./routes/utente.js"
 import proposteRouter from "./routes/proposte.js"
 import cercaRouter from "./routes/cerca.js"
 import sondaggiRouter from "./routes/sondaggi.js"
-import allegatiRouter from "./routes/allegati.js"
-import notificheRouter from "./routes/notifiche.js"
 import configRouter from "./routes/config.js"
 
 export function createApp(): Application {
@@ -39,10 +37,6 @@ export function createApp(): Application {
   app.use("/sondaggi", sondaggiRouter)
 
   app.use("/cerca", cercaRouter)
-
-  app.use("/notifiche", notificheRouter)
-
-  app.use("/", allegatiRouter)
 
   app.use("/config", configRouter)
 

@@ -39,8 +39,6 @@ export default function ProposalDetail() {
   const [isFavourited, setIsFavourited] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
 
-  const [isCopied, setIsCopied] = useState(false)
-
   const isAuthor = currentUser?.id && proposal?.author && typeof proposal.author === 'object'
     ? Number(currentUser.id) === Number(proposal.author.id)
     : false
@@ -120,13 +118,7 @@ export default function ProposalDetail() {
     }
   }
 
-  const handleShare = () => {
-    const url = window.location.href
-    navigator.clipboard.writeText(url).then(() => {
-      setIsCopied(true)
-      setTimeout(() => setIsCopied(false), 2000)
-    })
-  }
+
 
   const renderDynamicValue = (field: FormField, value: unknown): React.ReactNode => {
     if (value === null || value === undefined || value === "") return <span className="text-muted opacity-50 small">N/D</span>
@@ -177,7 +169,6 @@ export default function ProposalDetail() {
   const authorName = typeof proposal.author === 'object' ? proposal.author.username : proposal.author || "Anonimo"
 
   const mapField = schema.find(f => f.kind === 'map') as MapField | undefined
-  const fileFields = schema.filter(f => f.kind === 'file')
   const dataFields = schema.filter(f => f.kind !== 'map' && f.kind !== 'file')
 
   return (
@@ -257,34 +248,6 @@ export default function ProposalDetail() {
               </div>
             )}
 
-            {fileFields.some(f => proposal.additionalData?.[f.key]) && (
-              <div className="mb-5">
-                <h3 className="h6 fw-bold text-muted text-uppercase ls-1 mb-3 ms-1">Documenti Allegati</h3>
-                <div className="row g-3">
-                  {fileFields.map(field => {
-                    const val = proposal.additionalData?.[field.key] as string
-                    if (!val) return null
-                    return (
-                      <div className="col-md-6" key={field.key}>
-                        <div className="content-card p-3 d-flex align-items-center gap-3 hover-scale h-100">
-                          <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                            style={{ width: 48, height: 48, backgroundColor: theme.primary, color: 'white' }}>
-                            <svg className="icon icon-sm" style={{ fill: 'white' }}><use href="/svg/sprites.svg#it-file"></use></svg>
-                          </div>
-                          <div className="flex-grow-1 min-w-0">
-                            <span className="d-block text-dark fw-bold text-truncate" title={val}>{val}</span>
-                            <span className="d-block x-small text-muted text-uppercase">{getStringLabel(field.label)}</span>
-                          </div>
-                          <button className="btn btn-light border rounded-circle p-2 shadow-sm flex-shrink-0">
-                            <svg className="icon icon-sm text-primary"><use href="/svg/sprites.svg#it-download"></use></svg>
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
 
             {dataFields.some(f => proposal.additionalData?.[f.key]) && (
               <div className="mb-5">
@@ -362,36 +325,13 @@ export default function ProposalDetail() {
                   {isFavourited ? "Rimuovi dai Preferiti" : "Aggiungi ai Preferiti"}
                 </button>
 
-                <div className="d-flex gap-2 mt-1">
-                  <button
-                    onClick={handleShare}
-                    className="btn w-50 d-flex align-items-center justify-content-center gap-2 py-3 rounded-3 fw-bold text-white shadow-sm hover-scale transition-all"
-                    style={{
-                      backgroundColor: isCopied ? '#198754' : '#2083cc',
-                      border: 'none'
-                    }}
-                  >
-                    {isCopied ? (
-                      <>
-                        <svg className="icon icon-sm text-white" style={{ fill: 'white' }}><use href="/svg/sprites.svg#it-check"></use></svg>
-                        Copiato!
-                      </>
-                    ) : (
-                      <>
-                        <svg className="icon icon-sm text-white" style={{ fill: 'white' }}><use href="/svg/sprites.svg#it-share"></use></svg>
-                        Condividi
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    className="btn w-50 d-flex align-items-center justify-content-center gap-2 py-3 rounded-3 fw-bold shadow-sm hover-scale"
-                    style={{ backgroundColor: '#d1cbc2', color: theme.text.dark, border: 'none' }}
-                  >
-                    <svg className="icon icon-sm text-dark"><use href="/svg/sprites.svg#it-clock"></use></svg>
-                    Cronologia
-                  </button>
-                </div>
+                <button
+                  className="btn w-100 d-flex align-items-center justify-content-center gap-2 py-3 rounded-3 fw-bold shadow-sm hover-scale mt-1"
+                  style={{ backgroundColor: '#d1cbc2', color: theme.text.dark, border: 'none' }}
+                >
+                  <svg className="icon icon-sm text-dark"><use href="/svg/sprites.svg#it-clock"></use></svg>
+                  Cronologia
+                </button>
               </div>
 
             </div>

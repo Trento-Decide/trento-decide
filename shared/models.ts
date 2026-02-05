@@ -30,11 +30,6 @@ export interface UserRef {
   username: string
 }
 
-export interface NotificationTypeRef {
-  code: string
-  label?: string
-}
-
 export interface Role {
   id: ID
   code: string
@@ -148,16 +143,6 @@ export interface Status {
   colour?: string
 }
 
-export interface Attachment {
-  id: ID
-  proposalId: ID
-  fileUrl: string
-  fileType?: string
-  fileName?: string
-  uploadedAt: ISODateString
-  slotKey?: string
-}
-
 export interface Proposal {
   id: ID
   title: string
@@ -171,7 +156,6 @@ export interface Proposal {
   createdAt: ISODateString
   updatedAt?: ISODateString
   isFavourited?: boolean
-  attachments?: Attachment[]
 }
 
 export interface ProposalHistoryEntry {
@@ -257,12 +241,6 @@ export interface UserSanction {
   createdAt: ISODateString
 }
 
-export interface AttachmentCreateInput {
-  fileUrl: string
-  fileType?: string
-  fileName?: string
-}
-
 export interface ProposalInput {
   title?: string
   description?: string
@@ -284,34 +262,34 @@ export interface PollCreateInput {
 }
 
 interface BaseSearchFilters {
-  q?: string;              
+  q?: string;
   titlesOnly?: boolean;
 
-  authorId?: number | string;       
+  authorId?: number | string;
   authorUsername?: string;
-  categoryId?: number | string;     
+  categoryId?: number | string;
   categoryCode?: string;
 
-  favourites?: boolean; 
+  favourites?: boolean;
 
   dateFrom?: ISODateString;
   dateTo?: ISODateString;
 
   limit?: number;
-  sortBy?: 'date' | 'votes' | 'title'; 
+  sortBy?: 'date' | 'votes' | 'title';
   sortOrder?: 'asc' | 'desc';
 }
 
 export interface ProposalFilters extends BaseSearchFilters {
   statusId?: number | string;
   statusCode?: string;
-  
+
   minVotes?: number;
-  maxVotes?: number;  
+  maxVotes?: number;
 }
 
 export interface PollFilters extends BaseSearchFilters {
-  isActive?: boolean; 
+  isActive?: boolean;
 }
 
 export interface GlobalFilters extends BaseSearchFilters {
@@ -349,24 +327,6 @@ export interface PollSearchItem {
   date?: string
   timestamp?: ISODateString
   isFavourited?: boolean
-}
-
-export interface NotificationType {
-  id: ID
-  code: string
-  labels: LocalizedText
-}
-
-export interface Notification {
-  id: ID
-  userId: ID
-  notificationType: NotificationTypeRef
-  title: string
-  message?: string
-  isRead: boolean
-  relatedObjectId?: ID
-  relatedObjectType?: EntityType
-  createdAt: ISODateString
 }
 
 export class ApiError extends Error {

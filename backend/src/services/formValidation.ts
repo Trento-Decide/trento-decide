@@ -14,28 +14,6 @@ async function validateAdditionalDataByCategoryId(categoryId: number, additional
   return zodSchema.parse(additionalData ?? {})
 }
 
-async function validateRequiredFilesByCategoryId(categoryId: number, proposalId: number) {
-  const fields = await loadFormSchemaByCategoryId(categoryId)
-  const requiredSlots = fields.filter(f => f.kind === "file" && f.required).map(f => f.key)
-  if (requiredSlots.length === 0) return
-
-  const { rows } = await pool.query(
-    `SELECT slot_key, COUNT(*)::int AS cnt
-     FROM attachments
-     WHERE proposal_id = $1 AND slot_key IS NOT NULL
-     GROUP BY slot_key`,
-    [proposalId],
-  )
-  const map = new Map<string, number>(rows.map(r => [r.slot_key as string, r.cnt as number]))
-  const missing = requiredSlots.filter(k => (map.get(k) ?? 0) < 1)
-
-  if (missing.length > 0) {
-    const err = new Error("Missing required file attachments")
-    ;(err as Error & { details: { missing: string[] } }).details = { missing }
-    throw err
-  }
-}
-
 export async function validateProposalInput(
   input: ProposalInput,
   options?: { context?: 'draft' | 'update' | 'publish'; proposalId?: number }
@@ -78,12 +56,6 @@ export async function validateProposalInput(
     await validateAdditionalDataByCategoryId(categoryId, additionalData, isDraft)
   }
 
-  if (ctx === 'publish' && options?.proposalId !== undefined) {
-    if (categoryId === undefined) {
-      throw new Error('Category ID required')
-    }
-    await validateRequiredFilesByCategoryId(categoryId, options.proposalId)
-  }
-
   return true
 }
+

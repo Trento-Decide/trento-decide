@@ -10,7 +10,6 @@ import type {
   Proposal,
   ProposalSearchItem,
   ProposalInput,
-  Attachment,
   UserRef,
   CategoryRef,
   StatusRef,
@@ -363,7 +362,7 @@ router.get(
         vote_value: number
         created_at: Date
         is_favourited: boolean
-        
+
         author_id: number
         author_username: string
 
@@ -380,24 +379,24 @@ router.get(
 
       const items: ProposalSearchItem[] = result.rows.map((row) => {
         const r = row as ProposalRow
-        
+
         const authorRef: UserRef = {
-            id: r.author_id,
-            username: r.author_username,
+          id: r.author_id,
+          username: r.author_username,
         }
 
         const categoryRef: CategoryRef | undefined = r.category_id ? {
-            id: r.category_id,
-            code: r.category_code,
-            labels: r.category_labels,
-            colour: r.category_colour
+          id: r.category_id,
+          code: r.category_code,
+          labels: r.category_labels,
+          colour: r.category_colour
         } as CategoryRef : undefined
 
         const statusRef: StatusRef | undefined = r.status_id ? {
-            id: r.status_id,
-            code: r.status_code,
-            labels: r.status_labels,
-            colour: r.status_colour
+          id: r.status_id,
+          code: r.status_code,
+          labels: r.status_labels,
+          colour: r.status_colour
         } as StatusRef : undefined
 
         return {
@@ -409,9 +408,9 @@ router.get(
           date: new Date(r.created_at).toLocaleDateString("it-IT"),
           createdAt: new Date(r.created_at).toISOString(),
           isFavourited: Boolean(r.is_favourited),
-          
+
           author: authorRef,
-          
+
           ...(categoryRef ? { category: categoryRef } : {}),
           ...(statusRef ? { status: statusRef } : {})
         }
@@ -428,7 +427,7 @@ router.get(
 router.get(
   "/:id",
   conditionalAuthenticateToken,
-  async (req: Request<{ id: string }>, res: Response<Proposal | { error:string }>) => {
+  async (req: Request<{ id: string }>, res: Response<Proposal | { error: string }>) => {
     try {
       const id = Number(req.params.id)
       const userId = req.user ? Number(req.user.sub) : undefined
@@ -441,15 +440,7 @@ router.get(
             c.code AS category_code, c.labels ->> 'it' AS category_name, c.colour AS category_colour,
             s.code AS status_code, s.labels ->> 'it' AS status_name, s.colour AS status_colour,
             u.username AS author_name,
-            EXISTS(SELECT 1 FROM favourites f WHERE f.proposal_id = p.id AND f.user_id = $2) AS is_favourited,
-            (
-              SELECT json_agg(json_build_object(
-                'id', a.id, 'proposalId', a.proposal_id, 'fileUrl', a.file_url,
-                'fileType', a.file_type, 'fileName', a.file_name,
-                'uploadedAt', a.uploaded_at, 'slotKey', a.slot_key
-              ))
-              FROM attachments a WHERE a.proposal_id = p.id
-            ) AS attachments
+            EXISTS(SELECT 1 FROM favourites f WHERE f.proposal_id = p.id AND f.user_id = $2) AS is_favourited
          FROM proposals p
          LEFT JOIN categories c ON p.category_id = c.id
          LEFT JOIN statuses s ON p.status_id = s.id
@@ -466,29 +457,6 @@ router.get(
         return res.status(404).json({ error: "Not found" })
       }
 
-      interface RawAttachment {
-        id: number
-        proposalId: number
-        fileUrl: string
-        fileType?: string
-        fileName?: string
-        uploadedAt: string
-        slotKey?: string
-      }
-
-      const attachmentsRaw = (Array.isArray(r.attachments) ? r.attachments : []) as RawAttachment[]
-
-      const attachments: Attachment[] = attachmentsRaw
-        .filter(Boolean)
-        .map((a) => ({
-          id: a.id,
-          proposalId: a.proposalId,
-          fileUrl: a.fileUrl,
-          uploadedAt: new Date(a.uploadedAt).toISOString(),
-          ...(a.fileType ? { fileType: a.fileType } : {}),
-          ...(a.fileName ? { fileName: a.fileName } : {}),
-          ...(a.slotKey ? { slotKey: a.slotKey } : {}),
-        }))
 
       const proposal: Proposal = {
         id: r.id,
@@ -512,8 +480,7 @@ router.get(
           code: r.status_code,
           ...(r.status_name ? { labels: r.status_name } : {}),
           ...(r.status_colour ? { colour: r.status_colour } : {})
-        },
-        ...(attachments.length > 0 ? { attachments } : {})
+        }
       }
 
       return res.json(proposal)
@@ -688,7 +655,7 @@ router.post(
         `INSERT INTO favourites (user_id, proposal_id) 
          VALUES ($1, $2) 
          ON CONFLICT (user_id, proposal_id) WHERE proposal_id IS NOT NULL 
-         DO NOTHING`, 
+         DO NOTHING`,
         [userId, proposalId]
       )
 
