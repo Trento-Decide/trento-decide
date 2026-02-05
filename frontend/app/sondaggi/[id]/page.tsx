@@ -18,7 +18,6 @@ export default function PollDetail() {
     const [selectedOptions, setSelectedOptions] = useState<Record<number, number | null>>({})
     const [error, setError] = useState<ApiError | null>(null)
 
-    const [isCopied, setIsCopied] = useState(false)
     const [timeLeft, setTimeLeft] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [voteError, setVoteError] = useState<string | null>(null)
@@ -95,13 +94,7 @@ export default function PollDetail() {
         }))
     }
 
-    const handleShare = () => {
-        const url = window.location.href
-        navigator.clipboard.writeText(url).then(() => {
-            setIsCopied(true)
-            setTimeout(() => setIsCopied(false), 2000)
-        })
-    }
+
 
     const handleSubmitVotes = async () => {
         if (!poll || userHasVoted) return
@@ -406,27 +399,6 @@ export default function PollDetail() {
                                                 <use href="/svg/sprites.svg#it-check-circle"></use>
                                             </svg>
                                             {userHasVoted ? 'Hai già votato' : 'Invia Voti'}
-                                        </>
-                                    )}
-                                </button>
-
-                                <button
-                                    onClick={handleShare}
-                                    className="btn w-100 d-flex align-items-center justify-content-center gap-2 py-3 rounded-3 fw-bold text-white shadow-sm hover-scale transition-all"
-                                    style={{
-                                        backgroundColor: isCopied ? '#198754' : '#2083cc',
-                                        border: 'none'
-                                    }}
-                                >
-                                    {isCopied ? (
-                                        <>
-                                            <svg className="icon icon-sm text-white" style={{ fill: 'white' }}><use href="/svg/sprites.svg#it-check"></use></svg>
-                                            Copiato!
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="icon icon-sm text-white" style={{ fill: 'white' }}><use href="/svg/sprites.svg#it-share"></use></svg>
-                                            Condividi
                                         </>
                                     )}
                                 </button>

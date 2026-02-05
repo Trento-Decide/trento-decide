@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 import { getUserData } from "@/lib/local"
-import { getPolls, createPoll, getDashboardStats, DashboardStats } from "@/lib/api"
+import { getPolls, createPoll, getDashboardStats, DashboardStats, getCategories } from "@/lib/api"
 import { theme } from "@/lib/theme"
 import Breadcrumb from "@/app/components/Breadcrumb"
 import ErrorDisplay from "@/app/components/ErrorDisplay"
-import { PollSearchItem, ApiError, User, PollCreateInput } from "../../../shared/models"
+import { PollSearchItem, ApiError, User, PollCreateInput, Category } from "../../../shared/models"
 
 export default function AdminDashboard() {
     const router = useRouter()
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
     const [isLoading, setIsLoading] = useState(true)
     const [polls, setPolls] = useState<PollSearchItem[]>([])
     const [stats, setStats] = useState<DashboardStats | null>(null)
+    const [categories, setCategories] = useState<Category[]>([])
     const [error, setError] = useState<ApiError | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -62,6 +63,17 @@ export default function AdminDashboard() {
             }
         }
         fetchStats()
+
+        // Fetch categories
+        const fetchCategories = async () => {
+            try {
+                const data = await getCategories()
+                setCategories(data.data)
+            } catch (err: unknown) {
+                console.error("Failed to fetch categories:", err)
+            }
+        }
+        fetchCategories()
     }, [router])
 
     const handleAddQuestion = () => {
@@ -343,6 +355,23 @@ export default function AdminDashboard() {
                                     />
                                 </div>
 
+                                {/* Category */}
+                                <div className="mb-4">
+                                    <label className="form-label fw-bold small text-uppercase text-muted">Categoria</label>
+                                    <select
+                                        className="form-select"
+                                        value={newPoll.categoryId || ''}
+                                        onChange={(e) => setNewPoll(prev => ({ ...prev, categoryId: e.target.value ? Number(e.target.value) : undefined }))}
+                                    >
+                                        <option value="">Seleziona una categoria...</option>
+                                        {categories.map(cat => (
+                                            <option key={cat.id} value={cat.id}>
+                                                {typeof cat.labels === 'object' ? (cat.labels as Record<string, string>).it || cat.code : cat.code}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 {/* Expiry Date */}
                                 <div className="mb-4">
                                     <label className="form-label fw-bold small text-uppercase text-muted">Data di Scadenza</label>
@@ -407,7 +436,6 @@ export default function AdminDashboard() {
                                                     <div className="d-flex flex-column gap-2 mt-2">
                                                         {question.options?.map((option, oIndex) => (
                                                             <div key={oIndex} className="d-flex align-items-center gap-2">
-                                                                <div className="form-check-input disabled" style={{ marginTop: 0 }}></div>
                                                                 <input
                                                                     type="text"
                                                                     className="form-control form-control-sm"
@@ -440,21 +468,7 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
 
-                                {/* Active Toggle */}
-                                <div className="mb-4">
-                                    <div className="form-check form-switch">
-                                        <input
-                                            className="form-check-input"
-                                            type="checkbox"
-                                            id="isActive"
-                                            checked={newPoll.isActive}
-                                            onChange={(e) => setNewPoll(prev => ({ ...prev, isActive: e.target.checked }))}
-                                        />
-                                        <label className="form-check-label" htmlFor="isActive">
-                                            Pubblica immediatamente
-                                        </label>
-                                    </div>
-                                </div>
+
 
                                 {/* Submit Button */}
                                 <button
