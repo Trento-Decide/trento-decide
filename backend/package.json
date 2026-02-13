@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/backend/src/server.js",
     "lint": "eslint",
+    "test": "vitest run",
     "db:init:dev": "tsx src/scripts/init_dev_db.ts",
     "db:init:prod": "tsx src/scripts/init_prod_db.ts"
   },
@@ -31,10 +32,13 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
+    "@types/supertest": "^6.0.3",
     "eslint": "^9.39.1",
     "globals": "^16.5.0",
+    "supertest": "^7.2.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.48.1"
+    "typescript-eslint": "^8.48.1",
+    "vitest": "^4.0.18"
   }
 }
