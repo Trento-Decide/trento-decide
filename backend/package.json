@@ -4,6 +4,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/backend/src/server.js",
     "lint": "eslint",
     "db:init:dev": "tsx src/scripts/init_dev_db.ts",
     "db:init:prod": "tsx src/scripts/init_prod_db.ts"
