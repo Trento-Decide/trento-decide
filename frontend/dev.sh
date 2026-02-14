@@ -19,6 +19,10 @@ else
     echo "✓ File .env già esistente"
 fi
 
+# Installa le dipendenze shared
+echo "Installazione dipendenze shared..."
+(cd "$SCRIPT_DIR/../shared" && npm install)
+
 # Installa le dipendenze
 echo "Installazione dipendenze..."
 npm install
