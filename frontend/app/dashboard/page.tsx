@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 import { getUserData } from "@/lib/local"
-import { getPolls, createPoll, getDashboardStats, DashboardStats, getCategories } from "@/lib/api"
+import { getPolls, createPoll, getDashboardStats, getCategories } from "@/lib/api"
 import { theme } from "@/lib/theme"
 import Breadcrumb from "@/app/components/Breadcrumb"
 import ErrorDisplay from "@/app/components/ErrorDisplay"
-import { PollSearchItem, ApiError, User, PollCreateInput, Category } from "../../../shared/models"
+import { PollSearchItem, ApiError, User, PollCreateInput, Category, DashboardStats } from "../../../shared/models"
 
 export default function AdminDashboard() {
     const router = useRouter()
@@ -548,7 +548,7 @@ export default function AdminDashboard() {
 
             <style jsx global>{`
         .page-bg { background-color: #F5F5F7; }
-        
+
         .content-card {
            background-color: white;
            border-radius: 20px;
