@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
@@ -47,7 +47,7 @@ export default function Header() {
           color: #ffffff !important;
           text-decoration: none;
           font-weight: 500;
-          transition: none; 
+          transition: none;
           opacity: 0.9;
         }
         .comune-link:hover {
@@ -141,7 +141,7 @@ export default function Header() {
           </div>
 
           <div className="d-none d-lg-flex col-lg-7 justify-content-end">
-            <SearchBox />
+            <Suspense><SearchBox /></Suspense>
           </div>
 
           <div className="col-4 d-lg-none d-flex justify-content-end">
