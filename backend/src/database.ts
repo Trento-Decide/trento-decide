@@ -9,6 +9,7 @@ export const pool = new Pool({
   database: getEnvVar("DB_NAME"),
   user: getEnvVar("DB_USER"),
   password: getOptionalEnvVar("DB_PASSWORD"),
+  ssl: getOptionalEnvVar("DB_SSL") === "true" ? { rejectUnauthorized: false } : undefined,
 })
 
 export const runQueryFile = async (file: string) => {
