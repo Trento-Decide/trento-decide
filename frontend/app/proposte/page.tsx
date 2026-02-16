@@ -11,13 +11,17 @@ import { ProposalSearchItem, ApiError } from "../../../shared/models"
 
 export default function ProposalList() {
   const [proposals, setProposals] = useState<ProposalSearchItem[]>([])
-
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<ApiError | null>(null)
 
   useEffect(() => {
     const fetchProposals = async () => {
       try {
-        const res = await getProposals()
+        const res = await getProposals({ 
+            limit: 10, 
+            sortOrder: 'desc', 
+            sortBy: 'date' 
+        })
         setProposals(res)
       } catch (err: unknown) {
         if (err instanceof ApiError) {
@@ -25,6 +29,8 @@ export default function ProposalList() {
         } else if (err instanceof Error) {
           setError(new ApiError(err.message))
         }
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -34,13 +40,10 @@ export default function ProposalList() {
   if (error) {
     return (
       <div className="container my-4">
+        <Breadcrumb />
         <ErrorDisplay error={error} />
       </div>
     )
-  }
-
-  if (proposals.length === 0) {
-    return <div className="container my-4">Nessuna proposta disponibile.</div>
   }
 
   return (
@@ -54,13 +57,28 @@ export default function ProposalList() {
         </Link>
       </div>
 
-      <div className="row">
-        <div className="col-12">
-          {proposals.map(proposal => (
-            <ProposalCard key={proposal.id} proposal={proposal} />
-          ))}
+      {isLoading ? (
+        <div className="text-center py-5 text-muted">
+            <div className="spinner-border spinner-border-sm me-2" role="status"></div>
+            Caricamento proposte...
         </div>
-      </div>
+      ) : proposals.length === 0 ? (
+        <div className="text-center py-5 text-muted">
+            <svg className="mb-3" style={{ width: 48, height: 48, opacity: 0.3 }} xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+            </svg>
+            <p className="mb-0">Nessuna proposta disponibile.</p>
+        </div>
+      ) : (
+        <div className="row">
+          <div className="col-12">
+            {proposals.map(proposal => (
+              <ProposalCard key={proposal.id} proposal={proposal} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

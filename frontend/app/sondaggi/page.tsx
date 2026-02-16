@@ -16,7 +16,7 @@ export default function PollList() {
     useEffect(() => {
         const fetchPolls = async () => {
             try {
-                const res = await getPolls()
+                const res = await getPolls({ limit: 10 })
                 setPolls(res)
             } catch (err: unknown) {
                 if (err instanceof ApiError) {

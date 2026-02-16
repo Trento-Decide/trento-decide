@@ -88,7 +88,7 @@ export default function PollCard({ poll }: PollCardProps) {
               <svg className="icon icon-xs me-1" style={{ width: 14, height: 14, fill: 'currentColor' }} aria-hidden="true">
                 <use href="/svg/sprites.svg#it-clock"></use>
               </svg>
-              <span>-{timeLeft}</span>
+              <span>{timeLeft}</span>
             </div>
           )}
         </div>

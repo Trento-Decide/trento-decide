@@ -211,6 +211,7 @@ export interface PollQuestion {
   text: string
   orderIndex: number
   options?: PollOption[]
+  userAnswerId?: number | null
 }
 
 export interface PollOption {

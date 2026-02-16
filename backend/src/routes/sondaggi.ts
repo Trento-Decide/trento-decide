@@ -23,18 +23,28 @@ router.get(
     res: Response<PollSearchItem[] | { error: string }>,
   ) => {
     try {
-      const conditions: string[] = []
-      const values: unknown[] = []
-
+      const userId = req.user ? Number(req.user.sub) : undefined
+      
       const q = req.query.q as string | undefined
       const titlesOnly = req.query.titlesOnly === 'true'
       const authorId = req.query.authorId ? Number(req.query.authorId) : undefined
       const authorUsername = req.query.authorUsername as string | undefined
       const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined
       const categoryCode = req.query.categoryCode as string | undefined
-      const isActive = req.query.isActive !== undefined ? req.query.isActive === 'true' : undefined
+      
+      let isActive: boolean | undefined = undefined
+      if (req.query.isActive === 'true') isActive = true
+      if (req.query.isActive === 'false') isActive = false
+
       const dateFrom = req.query.dateFrom as string | undefined
       const dateTo = req.query.dateTo as string | undefined
+      
+      const sortBy = (req.query.sortBy as string) || 'date'
+      const sortOrder = (req.query.sortOrder as string) === 'asc' ? 'ASC' : 'DESC'
+      const limit = req.query.limit ? Math.max(1, Number(req.query.limit)) : undefined
+
+      const conditions: string[] = []
+      const values: unknown[] = []
 
       if (q) {
         const idx = values.push(`%${q}%`)
@@ -75,7 +85,38 @@ router.get(
         conditions.push(`p.created_at <= $${idx}::timestamptz`)
       }
 
+      let selectIsFavourited = "false AS is_favourited"
+      if (userId) {
+        const idxUser = values.push(userId)
+        const favExists = `EXISTS(SELECT 1 FROM favourites f WHERE f.poll_id = p.id AND f.user_id = $${idxUser})`
+        selectIsFavourited = `${favExists} AS is_favourited`
+        
+        if (req.query.favourites === 'true') {
+           conditions.push(favExists)
+        }
+      }
+
       const whereClause = conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : ""
+
+      let orderByClause = "ORDER BY p.created_at DESC"
+      switch (sortBy) {
+        case 'title':
+          orderByClause = `ORDER BY p.title ${sortOrder}`
+          break
+        case 'votes':
+          orderByClause = `ORDER BY total_votes ${sortOrder}`
+          break
+        case 'date':
+        default:
+          orderByClause = `ORDER BY p.created_at ${sortOrder}`
+          break
+      }
+
+      let limitClause = ""
+      if (limit) {
+        const idx = values.push(limit)
+        limitClause = `LIMIT $${idx}`
+      }
 
       const query = `
         SELECT
@@ -94,12 +135,16 @@ router.get(
             FROM poll_answers pa
             INNER JOIN poll_questions pq ON pa.question_id = pq.id
             WHERE pq.poll_id = p.id
-          ) AS total_votes
+          ) AS total_votes,
+
+          ${selectIsFavourited}
+
         FROM polls p
         LEFT JOIN categories c ON p.category_id = c.id
         LEFT JOIN users u ON p.created_by = u.id
         ${whereClause}
-        ORDER BY p.created_at DESC
+        ${orderByClause}
+        ${limitClause}
       `
 
       const result = await pool.query(query, values)
@@ -121,6 +166,7 @@ router.get(
         category_colour: string
 
         total_votes: string | number
+        is_favourited: boolean
       }
 
       const items: PollSearchItem[] = result.rows.map((row) => {
@@ -147,6 +193,7 @@ router.get(
           date: new Date(r.created_at).toLocaleDateString("it-IT"),
           timestamp: new Date(r.created_at).toISOString(),
           totalVotes: Number(r.total_votes),
+          isFavourited: Boolean(r.is_favourited),
 
           author: authorRef,
 
@@ -158,7 +205,7 @@ router.get(
       return res.json(items)
     } catch (err) {
       console.error(err)
-      return res.status(500).json({ error: "Errore nel recupero sondaggi" })
+      return res.status(500).json({ error: "Failed to fetch polls" })
     }
   },
 )
@@ -232,10 +279,8 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
       )
 
       const optionsRows = optionsResult.rows as OptionRow[]
-
-      // Get vote counts for all options
       const optionIds = optionsRows.map(o => o.id)
-      let voteCounts: Record<number, number> = {}
+      const voteCounts: Record<number, number> = {}
 
       if (optionIds.length > 0) {
         const voteCountsResult = await pool.query(
@@ -266,27 +311,35 @@ router.get("/:id", conditionalAuthenticateToken, async (req: Request<{ id: strin
       }
     }
 
+    let userHasVoted = false
+    const userAnswersMap: Record<number, number> = {}
+
+    if (userId && questionIds.length > 0) {
+      const userVotesResult = await pool.query(
+        `
+        SELECT question_id, selected_option_id
+        FROM poll_answers
+        WHERE user_id = $1 AND question_id = ANY($2::int[])
+        `,
+        [userId, questionIds],
+      )
+
+      if (userVotesResult.rowCount && userVotesResult.rowCount > 0) {
+        userHasVoted = true
+        for (const row of userVotesResult.rows) {
+          userAnswersMap[row.question_id] = row.selected_option_id
+        }
+      }
+    }
+
     const fullQuestions: PollQuestion[] = questionsData.map((q) => ({
       id: q.id,
       pollId: p.id,
       text: q.text,
       orderIndex: q.order_index ?? 0,
-      options: optionsMap[q.id] || []
+      options: optionsMap[q.id] || [],
+      userAnswerId: userAnswersMap[q.id] || null
     }))
-
-    let userHasVoted = false
-    if (userId && questionIds.length > 0) {
-      const voteCheck = await pool.query(
-        `
-        SELECT 1
-        FROM poll_answers pa
-        WHERE pa.user_id = $1 AND pa.question_id = ANY($2::int[])
-        LIMIT 1
-      `,
-        [userId, questionIds],
-      )
-      userHasVoted = (voteCheck.rowCount ?? 0) > 0
-    }
 
     const poll: Poll = {
       id: p.id,

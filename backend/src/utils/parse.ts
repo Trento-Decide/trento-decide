@@ -53,6 +53,9 @@ export function parseFilters(q: Record<string, unknown>): ProposalFilters {
   const dateTo = parseDate(q.dateTo)
   if (dateTo !== undefined) filters.dateTo = dateTo
 
+  const limit = parseNumber(q.limit)
+  if (limit !== undefined) filters.limit = limit
+
   if (typeof q.sortBy === "string" && ["date", "votes", "title"].includes(q.sortBy)) {
     filters.sortBy = q.sortBy as "date" | "votes" | "title"
   }

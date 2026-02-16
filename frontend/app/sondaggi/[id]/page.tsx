@@ -7,7 +7,7 @@ import { getPoll, votePoll } from "@/lib/api"
 
 import Breadcrumb from "@/app/components/Breadcrumb"
 import ErrorDisplay from "@/app/components/ErrorDisplay"
-import { Poll, ApiError } from "../../../../shared/models"
+import { Poll, PollQuestion, PollOption, ApiError } from "../../../../shared/models"
 import { theme } from "@/lib/theme"
 
 export default function PollDetail() {
@@ -21,6 +21,7 @@ export default function PollDetail() {
     const [timeLeft, setTimeLeft] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [voteError, setVoteError] = useState<string | null>(null)
+    const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
     const getStringLabel = (val: unknown): string => {
         if (!val) return ""
@@ -32,21 +33,39 @@ export default function PollDetail() {
         return ""
     }
 
-    useEffect(() => {
+    const fetchData = async () => {
         if (!id) return
+        setError(null)
+        try {
+            const numericId = Number(id)
+            const data = await getPoll(numericId)
+            const pollData = data.data as Poll
+            setPoll(pollData)
+            setUserHasVoted(data.userHasVoted)
 
-        const fetchData = async () => {
-            setError(null)
-            try {
-                const numericId = Number(id)
-                const data = await getPoll(numericId)
-                setPoll(data.data)
-                setUserHasVoted(data.userHasVoted)
-            } catch (err: unknown) {
-                if (err instanceof ApiError) setError(err)
-                else if (err instanceof Error) setError(new ApiError(err.message))
+            if (data.userHasVoted && pollData.questions) {
+                const initialSelections: Record<number, number | null> = {}
+                
+                pollData.questions.forEach(q => {
+                    const question = q as PollQuestion & { userAnswerId?: number };
+                    const options = q.options as (PollOption & { isUserChoice?: boolean })[] | undefined;
+
+                    const votedOption = options?.find(o => o.isUserChoice) 
+                                     || (question.userAnswerId ? options?.find(o => o.id === question.userAnswerId) : null)
+                    
+                    if (votedOption) {
+                        initialSelections[q.id] = votedOption.id
+                    }
+                })
+                setSelectedOptions(initialSelections)
             }
+        } catch (err: unknown) {
+            if (err instanceof ApiError) setError(err)
+            else if (err instanceof Error) setError(new ApiError(err.message))
         }
+    }
+
+    useEffect(() => {
         fetchData()
     }, [id])
 
@@ -87,19 +106,17 @@ export default function PollDetail() {
     }, [poll?.expiresAt, poll?.isActive])
 
     const handleOptionSelect = (questionId: number, optionId: number) => {
-        if (userHasVoted) return
+        if (!poll?.isActive) return
         setSelectedOptions(prev => ({
             ...prev,
-            [questionId]: prev[questionId] === optionId ? null : optionId
+            [questionId]: optionId
         }))
+        setSuccessMessage(null)
     }
 
-
-
     const handleSubmitVotes = async () => {
-        if (!poll || userHasVoted) return
+        if (!poll || !poll.isActive) return
 
-        // Check if all questions have selections
         const questionsWithSelections = poll.questions?.filter(q => selectedOptions[q.id] != null) || []
         if (questionsWithSelections.length === 0) {
             setVoteError("Seleziona almeno un'opzione per votare")
@@ -110,7 +127,6 @@ export default function PollDetail() {
         setVoteError(null)
 
         try {
-            // Submit votes for all selected questions
             for (const question of poll.questions || []) {
                 const selectedOptionId = selectedOptions[question.id]
                 if (selectedOptionId != null) {
@@ -118,7 +134,9 @@ export default function PollDetail() {
                 }
             }
 
+            setSuccessMessage(userHasVoted ? "Voto aggiornato con successo!" : "Voto registrato con successo!")
             setUserHasVoted(true)
+            await fetchData()
         } catch (err: unknown) {
             if (err instanceof ApiError) setVoteError(err.message)
             else if (err instanceof Error) setVoteError(err.message)
@@ -195,7 +213,7 @@ export default function PollDetail() {
                                         <svg className="icon icon-xs" style={{ width: 14, height: 14, fill: 'currentColor' }}>
                                             <use href="/svg/sprites.svg#it-clock"></use>
                                         </svg>
-                                        <span className="small fw-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>-{timeLeft}</span>
+                                        <span className="small fw-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>{timeLeft}</span>
                                     </div>
                                 )}
                             </div>
@@ -248,26 +266,30 @@ export default function PollDetail() {
                                                     const isSelected = selectedOptions[question.id] === option.id
                                                     const voteCount = option.voteCount || 0
                                                     const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0
+                                                    
+                                                    const intensity = 0.4 + (percentage / 100) * 0.5
 
                                                     return (
                                                         <button
                                                             key={option.id}
                                                             onClick={() => handleOptionSelect(question.id, option.id)}
-                                                            disabled={userHasVoted}
-                                                            className={`option-btn d-flex align-items-center gap-3 p-3 rounded-3 border text-start w-100 position-relative overflow-hidden ${isSelected ? 'selected' : ''} ${userHasVoted ? 'voted' : ''}`}
+                                                            disabled={!poll.isActive}
+                                                            className={`option-btn d-flex align-items-center gap-3 p-3 rounded-3 border text-start w-100 position-relative overflow-hidden ${isSelected ? 'selected' : ''}`}
                                                             style={{
                                                                 backgroundColor: isSelected ? `color-mix(in srgb, ${catColor}, white 90%)` : 'white',
                                                                 borderColor: isSelected ? catColor : '#e0e0e0',
-                                                                transition: 'all 0.2s ease'
+                                                                transition: 'all 0.2s ease',
+                                                                boxShadow: isSelected ? `0 0 0 1px ${catColor}` : 'none'
                                                             }}
                                                         >
-                                                            {/* Progress bar background (only after voting) */}
-                                                            {userHasVoted && (
+                                                            {/* Progress bar */}
+                                                            {(userHasVoted || !poll.isActive) && (
                                                                 <div
                                                                     className="position-absolute top-0 start-0 h-100"
                                                                     style={{
                                                                         width: `${percentage}%`,
-                                                                        backgroundColor: `color-mix(in srgb, ${catColor}, white 85%)`,
+                                                                        backgroundColor: catColor,
+                                                                        opacity: intensity,
                                                                         transition: 'width 0.5s ease',
                                                                         zIndex: 0
                                                                     }}
@@ -292,12 +314,11 @@ export default function PollDetail() {
                                                                     </svg>
                                                                 )}
                                                             </div>
-                                                            <span className={`fw-medium position-relative ${isSelected ? 'text-dark' : 'text-secondary'}`} style={{ zIndex: 1, flex: 1 }}>
+                                                            <span className={`fw-medium position-relative ${isSelected ? 'text-dark fw-bold' : 'text-secondary'}`} style={{ zIndex: 1, flex: 1 }}>
                                                                 {option.text}
                                                             </span>
 
-                                                            {/* Vote count badge (only after voting) */}
-                                                            {userHasVoted && (
+                                                            {(userHasVoted || !poll.isActive) && (
                                                                 <div className="d-flex align-items-center gap-2 position-relative" style={{ zIndex: 1 }}>
                                                                     <span className="badge bg-white text-dark fw-bold px-2 py-1 rounded-pill shadow-sm" style={{ fontSize: '0.8rem' }}>
                                                                         {percentage}%
@@ -315,11 +336,11 @@ export default function PollDetail() {
 
                                         {userHasVoted && (
                                             <div className="mt-3 pt-3 border-top">
-                                                <span className="badge bg-success bg-opacity-10 text-success rounded-3 px-2 py-1">
-                                                    <svg className="icon icon-xs me-1" style={{ width: 12, height: 12, fill: 'currentColor' }}>
+                                                <span className="badge bg-opacity-10 text-success rounded-3 px-2 py-1 d-inline-flex align-items-center gap-2">
+                                                    <svg className="icon icon-xs flex-shrink-0" style={{ width: 12, height: 12, fill: 'currentColor' }}>
                                                         <use href="/svg/sprites.svg#it-check"></use>
                                                     </svg>
-                                                    Hai già votato questa domanda
+                                                    {poll.isActive ? "Voto registrato (modificabile)" : "Voto definitivo"}
                                                 </span>
                                             </div>
                                         )}
@@ -377,16 +398,21 @@ export default function PollDetail() {
                                         {voteError}
                                     </div>
                                 )}
+                                {successMessage && (
+                                    <div className="alert alert-success mb-0 small" role="alert">
+                                        {successMessage}
+                                    </div>
+                                )}
                                 <button
                                     onClick={handleSubmitVotes}
                                     className="btn w-100 d-flex align-items-center justify-content-center gap-2 py-3 fw-bold rounded-3 shadow-sm hover-scale"
                                     style={{
-                                        backgroundColor: poll.isActive && !userHasVoted ? catColor : '#e0e0e0',
-                                        color: poll.isActive && !userHasVoted ? 'white' : '#888',
+                                        backgroundColor: poll.isActive ? catColor : '#e0e0e0',
+                                        color: poll.isActive ? 'white' : '#888',
                                         border: 'none',
-                                        cursor: poll.isActive && !userHasVoted && !isSubmitting ? 'pointer' : 'not-allowed'
+                                        cursor: poll.isActive && !isSubmitting ? 'pointer' : 'not-allowed'
                                     }}
-                                    disabled={!poll.isActive || userHasVoted || isSubmitting}
+                                    disabled={!poll.isActive || isSubmitting}
                                 >
                                     {isSubmitting ? (
                                         <>
@@ -398,7 +424,7 @@ export default function PollDetail() {
                                             <svg className="icon icon-sm" style={{ fill: 'currentColor' }}>
                                                 <use href="/svg/sprites.svg#it-check-circle"></use>
                                             </svg>
-                                            {userHasVoted ? 'Hai già votato' : 'Invia Voti'}
+                                            {userHasVoted ? 'Aggiorna Voto' : 'Invia Voti'}
                                         </>
                                     )}
                                 </button>
@@ -458,13 +484,9 @@ export default function PollDetail() {
           cursor: pointer;
           background: white;
         }
-        .option-btn:hover:not(.voted):not(.selected) {
+        .option-btn:hover:not(:disabled):not(.selected) {
           background-color: #f8f9fa;
           border-color: #ccc;
-        }
-        .option-btn.voted {
-          cursor: not-allowed;
-          opacity: 0.7;
         }
         .option-btn.selected {
           box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);

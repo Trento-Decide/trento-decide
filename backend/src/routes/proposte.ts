@@ -327,6 +327,13 @@ router.get(
         }
       }
 
+      let limitClause = ""
+      if (filters.limit) {
+        const limitVal = Math.max(1, Number(filters.limit))
+        const idx = values.push(limitVal)
+        limitClause = `LIMIT $${idx}`
+      }
+
       const query = `
         SELECT
           p.id, p.title, p.description, p.vote_value, p.created_at,
@@ -351,6 +358,7 @@ router.get(
         LEFT JOIN statuses s ON p.status_id = s.id
         ${whereClause}
         ${orderByClause}
+        ${limitClause}
       `
 
       const result = await pool.query(query, values)

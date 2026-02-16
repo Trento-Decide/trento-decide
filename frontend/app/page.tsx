@@ -1,10 +1,10 @@
 import Link from "next/link"
-import { getCategories, getProposals, globalSearch } from "@/lib/api"
+import { getCategories, getPolls, getProposals } from "@/lib/api"
 import UserGreeting from "@/app/components/UserGreeting"
 import ProposalCard from "@/app/components/ProposalCard"
 import PollCard from "@/app/components/PollCard"
 import { theme } from "@/lib/theme"
-import { Category, ProposalSearchItem, PollSearchItem } from "../../shared/models"
+import { PollSearchItem } from "../../shared/models"
 
 export const revalidate = 60 
 
@@ -12,12 +12,15 @@ export default async function HomePage() {
   const [categoriesRes, proposalsRes, pollsRes] = await Promise.allSettled([
     getCategories(),
     getProposals({ limit: 3, sortOrder: 'desc', sortBy: 'date' }),
-    globalSearch({ type: 'sondaggio', limit: 3, isActive: true })
+    getPolls({ limit: 3, isActive: true }) 
   ])
 
-  const categories: Category[] = categoriesRes.status === 'fulfilled' ? categoriesRes.value.data : []
-  const recentProposals: ProposalSearchItem[] = proposalsRes.status === 'fulfilled' ? proposalsRes.value : []
-  const activePolls = (pollsRes.status === 'fulfilled' ? pollsRes.value.data : []) as PollSearchItem[]
+  const categories = categoriesRes.status === 'fulfilled' ? categoriesRes.value.data : []
+  const recentProposals = proposalsRes.status === 'fulfilled' ? proposalsRes.value : []
+  let activePolls: PollSearchItem[] = []
+  if (pollsRes.status === 'fulfilled') {
+    activePolls = pollsRes.value
+  }
 
   return (
     <div style={{ backgroundColor: "#f2f7fc", minHeight: "100vh" }}>
