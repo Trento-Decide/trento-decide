@@ -1,7 +1,7 @@
 ## Credenziali
 
 ### Utente Cittadino
-- email: alice@example.com
+- email: alice@test.com
 - passw: 30L
 
 ### Utente Amministratore
