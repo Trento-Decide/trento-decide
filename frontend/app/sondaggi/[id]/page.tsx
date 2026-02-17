@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 
 import { getPoll, votePoll } from "@/lib/api"
@@ -33,7 +33,7 @@ export default function PollDetail() {
         return ""
     }
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         if (!id) return
         setError(null)
         try {
@@ -45,14 +45,14 @@ export default function PollDetail() {
 
             if (data.userHasVoted && pollData.questions) {
                 const initialSelections: Record<number, number | null> = {}
-                
+
                 pollData.questions.forEach(q => {
                     const question = q as PollQuestion & { userAnswerId?: number };
                     const options = q.options as (PollOption & { isUserChoice?: boolean })[] | undefined;
 
-                    const votedOption = options?.find(o => o.isUserChoice) 
+                    const votedOption = options?.find(o => o.isUserChoice)
                                      || (question.userAnswerId ? options?.find(o => o.id === question.userAnswerId) : null)
-                    
+
                     if (votedOption) {
                         initialSelections[q.id] = votedOption.id
                     }
@@ -63,11 +63,11 @@ export default function PollDetail() {
             if (err instanceof ApiError) setError(err)
             else if (err instanceof Error) setError(new ApiError(err.message))
         }
-    }
+    }, [id])
 
     useEffect(() => {
         fetchData()
-    }, [id])
+    }, [fetchData])
 
     // Countdown timer
     useEffect(() => {
@@ -266,7 +266,7 @@ export default function PollDetail() {
                                                     const isSelected = selectedOptions[question.id] === option.id
                                                     const voteCount = option.voteCount || 0
                                                     const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0
-                                                    
+
                                                     const intensity = 0.4 + (percentage / 100) * 0.5
 
                                                     return (
@@ -437,21 +437,21 @@ export default function PollDetail() {
 
             <style jsx global>{`
         .page-bg { background-color: #F5F5F7; }
-        
+
         .content-card {
            background-color: white;
            border-radius: 20px;
            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
            border: 1px solid rgba(0,0,0,0.03);
         }
-        
+
         .shadow-xs { box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
         .metadata-badge { height: 36px; }
 
         .ls-1 { letter-spacing: 0.5px; }
         .x-small { font-size: 0.75rem; }
         .tracking-tight { letter-spacing: -0.02em; }
-        
+
         .hover-scale { transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
         .hover-scale:active { transform: scale(0.97); }
 

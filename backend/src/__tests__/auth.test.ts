@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import request from "supertest"
 import bcrypt from "bcrypt"
 import { createApp } from "../app.js"
+import { QueryResult } from "pg"
 
 vi.mock("../database.js", () => ({
   pool: { query: vi.fn(), connect: vi.fn() },
@@ -35,7 +36,7 @@ describe("POST /auth/login", () => {
     vi.mocked(pool.query).mockResolvedValueOnce({
       rows: [],
       rowCount: 0,
-    } as any)
+    } as unknown as QueryResult)
 
     const res = await request(app).post("/auth/login").send({
       email: "nonexistent@example.com",
@@ -63,7 +64,7 @@ describe("POST /auth/login", () => {
         role_colour: "#000",
       }],
       rowCount: 1,
-    } as any)
+    } as unknown as QueryResult)
 
     const res = await request(app).post("/auth/login").send({
       email: "alice@example.com",
@@ -91,7 +92,7 @@ describe("POST /auth/login", () => {
         role_colour: "#000",
       }],
       rowCount: 1,
-    } as any)
+    } as unknown as QueryResult)
 
     const res = await request(app).post("/auth/login").send({
       email: "alice@example.com",
@@ -120,7 +121,7 @@ describe("POST /auth/login", () => {
         role_colour: "#000",
       }],
       rowCount: 1,
-    } as any)
+    } as unknown as QueryResult)
 
     const res = await request(app).post("/auth/login").send({
       email: "banned@example.com",
@@ -156,7 +157,7 @@ describe("POST /auth/register", () => {
     vi.mocked(pool.query).mockResolvedValueOnce({
       rows: [{ id: 1 }],
       rowCount: 1,
-    } as any)
+    } as unknown as QueryResult)
 
     const res = await request(app).post("/auth/register").send({
       username: "alice",
@@ -173,12 +174,12 @@ describe("POST /auth/register", () => {
     vi.mocked(pool.query).mockResolvedValueOnce({
       rows: [],
       rowCount: 0,
-    } as any)
+    } as unknown as QueryResult)
 
     vi.mocked(pool.query).mockResolvedValueOnce({
       rows: [{ id: 1 }],
       rowCount: 1,
-    } as any)
+    } as unknown as QueryResult)
 
     const res = await request(app).post("/auth/register").send({
       username: "newuser",
@@ -192,10 +193,10 @@ describe("POST /auth/register", () => {
   })
 
   it("restituisce 201 con registrazione avvenuta", async () => {
-    vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
-    vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
-    vi.mocked(pool.query).mockResolvedValueOnce({ rows: [{ id: 1 }], rowCount: 1 } as any)
-    vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 1 } as any)
+    vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 0 } as unknown as QueryResult)
+    vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 0 } as unknown as QueryResult)
+    vi.mocked(pool.query).mockResolvedValueOnce({ rows: [{ id: 1 }], rowCount: 1 } as unknown as QueryResult)
+    vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 1 } as unknown as QueryResult)
 
     const res = await request(app).post("/auth/register").send({
       username: "newuser",

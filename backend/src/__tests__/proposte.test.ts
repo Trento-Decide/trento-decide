@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import request from "supertest"
 import jwt from "jsonwebtoken"
 import { createApp } from "../app.js"
+import { QueryResult } from "pg"
 
 const TEST_SECRET = "test-secret"
 
@@ -58,7 +59,7 @@ describe("POST /proposte/bozza", () => {
         vi.mocked(pool.query).mockResolvedValueOnce({
             rows: [{ id: 99 }],
             rowCount: 1,
-        } as any)
+        } as unknown as QueryResult)
 
         const token = makeToken(1)
         const res = await request(app)
@@ -80,7 +81,7 @@ describe("DELETE /proposte/:id", () => {
     })
 
     it("restituisce 404 se la proposta non esiste", async () => {
-        vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
+        vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 0 } as unknown as QueryResult)
 
         const token = makeToken(1)
         const res = await request(app)
@@ -94,7 +95,7 @@ describe("DELETE /proposte/:id", () => {
         vi.mocked(pool.query).mockResolvedValueOnce({
             rows: [{ author_id: 999 }],
             rowCount: 1,
-        } as any)
+        } as unknown as QueryResult)
 
         const token = makeToken(1)
         const res = await request(app)
@@ -108,8 +109,8 @@ describe("DELETE /proposte/:id", () => {
         vi.mocked(pool.query).mockResolvedValueOnce({
             rows: [{ author_id: 1 }],
             rowCount: 1,
-        } as any)
-        vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 1 } as any)
+        } as unknown as QueryResult)
+        vi.mocked(pool.query).mockResolvedValueOnce({ rows: [], rowCount: 1 } as unknown as QueryResult)
 
         const token = makeToken(1)
         const res = await request(app)
@@ -136,7 +137,7 @@ describe("POST /proposte/:id/vota", () => {
         vi.mocked(pool.query).mockResolvedValueOnce({
             rows: [{ status_id: 2 }],
             rowCount: 1,
-        } as any)
+        } as unknown as QueryResult)
 
         const token = makeToken(1)
         const res = await request(app)
@@ -152,7 +153,7 @@ describe("POST /proposte/:id/vota", () => {
         vi.mocked(pool.query).mockResolvedValueOnce({
             rows: [{ status_id: 2, status_code: "pubblicata" }],
             rowCount: 1,
-        } as any)
+        } as unknown as QueryResult)
 
         mockClient.query.mockResolvedValueOnce({})
         mockClient.query.mockResolvedValueOnce({
