@@ -1,0 +1,1551 @@
+openapi: 3.0.0
+info:
+  version: '1.0'
+  title: "TrentoDecide OpenAPI 3.0"
+  description: API for managing proposals, polls, and citizen participation.
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:3001
+    description: Localhost
+paths:
+  /auth/login:
+    post:
+      description: >-
+        Authenticates a user with email and password.
+        Returns a JWT access token and user data.
+      summary: Login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  description: 'Email address of the user'
+                password:
+                  type: string
+                  description: 'Password of the user'
+      responses:
+        '200':
+          description: 'Login successful'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: 'JWT access token'
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Invalid credentials'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'User is banned'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/register:
+    post:
+      description: >-
+        Registers a new user in the system.
+      summary: Register a new user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+                - confirmPassword
+              properties:
+                username:
+                  type: string
+                  description: 'Username (3-20 characters, letters, numbers and underscores)'
+                email:
+                  type: string
+                  description: 'Email address of the user'
+                password:
+                  type: string
+                  description: 'Password (8-30 characters, must contain uppercase, lowercase and number)'
+                confirmPassword:
+                  type: string
+                  description: 'Password confirmation'
+                emailOptIn:
+                  type: boolean
+                  description: 'Whether the user opts in for email notifications'
+      responses:
+        '201':
+          description: 'User registered'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Username or email already taken'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/provider:
+    get:
+      description: >-
+        Returns provider token for external authentication.
+      summary: Get provider token
+      responses:
+        '200':
+          description: 'Provider token'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providerToken:
+                    type: string
+
+  /utente:
+    delete:
+      description: >-
+        Deletes the authenticated user's account.
+      summary: Delete own account
+      responses:
+        '204':
+          description: 'User deleted'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'User not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /proposte:
+    get:
+      description: >-
+        Gets the list of proposals.
+        Supports filtering by text, author, category, status, votes, date and favourites.
+      summary: View all proposals
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+        - in: query
+          name: titlesOnly
+          schema:
+            type: boolean
+        - in: query
+          name: authorId
+          schema:
+            type: integer
+        - in: query
+          name: authorUsername
+          schema:
+            type: string
+        - in: query
+          name: categoryId
+          schema:
+            type: integer
+        - in: query
+          name: categoryCode
+          schema:
+            type: string
+        - in: query
+          name: statusId
+          schema:
+            type: integer
+        - in: query
+          name: statusCode
+          schema:
+            type: string
+        - in: query
+          name: minVotes
+          schema:
+            type: integer
+        - in: query
+          name: maxVotes
+          schema:
+            type: integer
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+        - in: query
+          name: favourites
+          schema:
+            type: boolean
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [date, votes, title]
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: 'Collection of proposals'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProposalSearchItem'
+
+  /proposte/bozza:
+    post:
+      description: >-
+        Creates a new proposal as a draft.
+      summary: Create a draft proposal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalInput'
+      responses:
+        '201':
+          description: 'Draft created'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: 'ID of the created proposal'
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /proposte/{id}:
+    get:
+      description: >-
+        Gets a single proposal by its ID.
+      summary: View a proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Proposal details'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+        '404':
+          description: 'Not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      description: >-
+        Updates a draft proposal. Only the author can update their own draft.
+      summary: Update a draft proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalInput'
+      responses:
+        '200':
+          description: 'Draft updated'
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: 'Cannot patch a published proposal or no fields provided'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Unauthorized'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      description: >-
+        Updates a published proposal. Increments version and resets votes.
+        Only the author can update their own proposal.
+      summary: Update a published proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalInput'
+      responses:
+        '200':
+          description: 'Proposal updated'
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: 'Proposal is a draft'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Unauthorized'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      description: >-
+        Deletes a proposal. Only the author can delete their own proposal.
+      summary: Delete a proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 'Proposal deleted'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Unauthorized'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /proposte/{id}/pubblica:
+    post:
+      description: >-
+        Publishes a draft proposal. Only the author can publish their own draft.
+      summary: Publish a draft proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Proposal published'
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: 'Proposal is not a draft'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Unauthorized'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /proposte/{id}/vota:
+    post:
+      description: >-
+        Votes on a proposal. Vote value must be 1 (upvote) or -1 (downvote).
+      summary: Vote on a proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - vote
+              properties:
+                vote:
+                  type: integer
+                  enum: [1, -1]
+                  description: 'Vote value'
+      responses:
+        '200':
+          description: 'Vote registered'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vote:
+                    type: integer
+                  totalVotes:
+                    type: integer
+        '400':
+          description: 'Invalid vote'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      description: >-
+        Removes the authenticated user's vote from a proposal.
+      summary: Remove vote from a proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Vote removed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalVotes:
+                    type: integer
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      description: >-
+        Gets the authenticated user's vote on a proposal.
+      summary: Get own vote on a proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Current vote'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vote:
+                    type: integer
+                    nullable: true
+                    enum: [1, -1, null]
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /proposte/{id}/preferisco:
+    post:
+      description: >-
+        Adds a proposal to the authenticated user's favourites.
+      summary: Favourite a proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Added to favourites'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isFavourited:
+                    type: boolean
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      description: >-
+        Removes a proposal from the authenticated user's favourites.
+      summary: Remove favourite from a proposal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Removed from favourites'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isFavourited:
+                    type: boolean
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      description: >-
+        Gets whether the authenticated user has favourited a proposal.
+      summary: Check if a proposal is favourited
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Favourite status'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isFavourited:
+                    type: boolean
+
+  /sondaggi:
+    get:
+      description: >-
+        Gets the list of polls.
+        Supports filtering by text, author, category, active status, date and favourites.
+      summary: View all polls
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+        - in: query
+          name: titlesOnly
+          schema:
+            type: boolean
+        - in: query
+          name: authorId
+          schema:
+            type: integer
+        - in: query
+          name: authorUsername
+          schema:
+            type: string
+        - in: query
+          name: categoryId
+          schema:
+            type: integer
+        - in: query
+          name: categoryCode
+          schema:
+            type: string
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+        - in: query
+          name: favourites
+          schema:
+            type: boolean
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [date, votes, title]
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: 'Collection of polls'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PollSearchItem'
+    post:
+      description: >-
+        Creates a new poll with questions and options. Admin only.
+      summary: Create a new poll
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollCreateInput'
+      responses:
+        '201':
+          description: 'Poll created'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  pollId:
+                    type: integer
+        '400':
+          description: 'Missing or invalid data'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Admin access required'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sondaggi/{id}:
+    get:
+      description: >-
+        Gets a single poll by its ID, including questions, options and vote counts.
+      summary: View a poll
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Poll details'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Poll'
+                  userHasVoted:
+                    type: boolean
+        '404':
+          description: 'Not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sondaggi/{id}/vota:
+    post:
+      description: >-
+        Submits a vote on a poll question.
+      summary: Vote on a poll
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - questionId
+              properties:
+                questionId:
+                  type: integer
+                  description: 'ID of the question to answer'
+                selectedOptionId:
+                  type: integer
+                  description: 'ID of the selected option'
+                textResponse:
+                  type: string
+                  description: 'Text response (alternative to option)'
+      responses:
+        '200':
+          description: 'Vote registered'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: 'Invalid data or poll closed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Poll not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cerca:
+    get:
+      description: >-
+        Global search across proposals and polls.
+        Supports filtering by type, text, author, category, status, votes, date.
+      summary: Global search
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+        - in: query
+          name: titlesOnly
+          schema:
+            type: boolean
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [all, proposta, sondaggio]
+        - in: query
+          name: authorUsername
+          schema:
+            type: string
+        - in: query
+          name: categoryCode
+          schema:
+            type: string
+        - in: query
+          name: statusCode
+          schema:
+            type: string
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+        - in: query
+          name: minVotes
+          schema:
+            type: integer
+        - in: query
+          name: maxVotes
+          schema:
+            type: integer
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [date, votes, title]
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: 'Search results'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: '#/components/schemas/ProposalSearchItem'
+                        - $ref: '#/components/schemas/PollSearchItem'
+
+  /config/categories:
+    get:
+      description: >-
+        Gets all available categories.
+      summary: View all categories
+      responses:
+        '200':
+          description: 'Collection of categories'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+
+  /config/categories/{id}/form:
+    get:
+      description: >-
+        Gets the form schema for a specific category.
+      summary: Get category form schema
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Form schema for the category'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FormField'
+        '400':
+          description: 'Invalid ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Category not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /config/statuses:
+    get:
+      description: >-
+        Gets all available statuses.
+      summary: View all statuses
+      responses:
+        '200':
+          description: 'Collection of statuses'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Status'
+
+  /dashboard/stats:
+    get:
+      description: >-
+        Gets dashboard statistics. Admin only.
+      summary: Get dashboard stats
+      responses:
+        '200':
+          description: 'Dashboard statistics'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+        '401':
+          description: 'Missing Authorization token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Admin access required'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: 'Error message'
+    LocalizedText:
+      type: object
+      additionalProperties:
+        type: string
+      description: 'Object with language codes as keys and translations as values'
+    RoleRef:
+      type: object
+      required:
+        - id
+        - code
+      properties:
+        id:
+          type: integer
+          description: 'ID of the role'
+        code:
+          type: string
+          description: 'Code of the role'
+        labels:
+          type: string
+          description: 'Label of the role'
+        colour:
+          type: string
+          description: 'Colour of the role'
+    UserRef:
+      type: object
+      required:
+        - id
+        - username
+      properties:
+        id:
+          type: integer
+          description: 'ID of the user'
+        username:
+          type: string
+          description: 'Username of the user'
+    CategoryRef:
+      type: object
+      required:
+        - id
+        - code
+      properties:
+        id:
+          type: integer
+          description: 'ID of the category'
+        code:
+          type: string
+          description: 'Code of the category'
+        labels:
+          $ref: '#/components/schemas/LocalizedText'
+        colour:
+          type: string
+          description: 'Colour of the category'
+    StatusRef:
+      type: object
+      required:
+        - id
+        - code
+      properties:
+        id:
+          type: integer
+          description: 'ID of the status'
+        code:
+          type: string
+          description: 'Code of the status'
+        labels:
+          $ref: '#/components/schemas/LocalizedText'
+        colour:
+          type: string
+          description: 'Colour of the status'
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - email
+        - emailOptIn
+        - role
+        - isBanned
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: 'ID of the user'
+        username:
+          type: string
+          description: 'Username of the user'
+        email:
+          type: string
+          description: 'Email address of the user'
+        emailOptIn:
+          type: boolean
+          description: 'Whether the user opted in for email notifications'
+        role:
+          $ref: '#/components/schemas/RoleRef'
+        isBanned:
+          type: boolean
+          description: 'Whether the user is banned'
+        createdAt:
+          type: string
+          description: 'Creation date in ISO format'
+    Category:
+      type: object
+      required:
+        - id
+        - code
+        - labels
+        - formSchema
+      properties:
+        id:
+          type: integer
+          description: 'ID of the category'
+        code:
+          type: string
+          description: 'Code of the category'
+        labels:
+          $ref: '#/components/schemas/LocalizedText'
+        description:
+          $ref: '#/components/schemas/LocalizedText'
+        colour:
+          type: string
+          description: 'Colour of the category'
+        formSchema:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormField'
+    FormField:
+      type: object
+      required:
+        - kind
+        - key
+        - label
+      properties:
+        kind:
+          type: string
+          enum: [text, number, boolean, select, multiselect, date, map, file]
+          description: 'Type of the field'
+        key:
+          type: string
+          description: 'Key identifier of the field'
+        label:
+          $ref: '#/components/schemas/LocalizedText'
+        required:
+          type: boolean
+          description: 'Whether the field is required'
+        helpText:
+          $ref: '#/components/schemas/LocalizedText'
+    Status:
+      type: object
+      required:
+        - id
+        - code
+        - labels
+      properties:
+        id:
+          type: integer
+          description: 'ID of the status'
+        code:
+          type: string
+          description: 'Code of the status'
+        labels:
+          $ref: '#/components/schemas/LocalizedText'
+        colour:
+          type: string
+          description: 'Colour of the status'
+    ProposalInput:
+      type: object
+      properties:
+        title:
+          type: string
+          description: 'Title of the proposal'
+        description:
+          type: string
+          description: 'Description of the proposal'
+        categoryId:
+          type: integer
+          description: 'ID of the category'
+        additionalData:
+          type: object
+          description: 'Additional data based on category form schema'
+    Proposal:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - voteValue
+        - additionalData
+        - currentVersion
+        - category
+        - status
+        - author
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: 'ID of the proposal'
+        title:
+          type: string
+          description: 'Title of the proposal'
+        description:
+          type: string
+          description: 'Description of the proposal'
+        voteValue:
+          type: integer
+          description: 'Total vote value'
+        additionalData:
+          type: object
+          description: 'Additional data based on category form schema'
+        currentVersion:
+          type: integer
+          description: 'Current version number'
+        category:
+          $ref: '#/components/schemas/CategoryRef'
+        status:
+          $ref: '#/components/schemas/StatusRef'
+        author:
+          $ref: '#/components/schemas/UserRef'
+        createdAt:
+          type: string
+          description: 'Creation date in ISO format'
+        updatedAt:
+          type: string
+          description: 'Last update date in ISO format'
+        isFavourited:
+          type: boolean
+          description: 'Whether the authenticated user has favourited the proposal'
+    ProposalSearchItem:
+      type: object
+      required:
+        - type
+        - id
+        - title
+        - description
+      properties:
+        type:
+          type: string
+          enum: [proposta]
+          description: 'Item type'
+        id:
+          type: integer
+          description: 'ID of the proposal'
+        title:
+          type: string
+          description: 'Title of the proposal'
+        description:
+          type: string
+          description: 'Description of the proposal'
+        author:
+          $ref: '#/components/schemas/UserRef'
+        category:
+          $ref: '#/components/schemas/CategoryRef'
+        status:
+          $ref: '#/components/schemas/StatusRef'
+        voteValue:
+          type: integer
+          description: 'Total vote value'
+        date:
+          type: string
+          description: 'Formatted date'
+        createdAt:
+          type: string
+          description: 'Creation date in ISO format'
+        isFavourited:
+          type: boolean
+          description: 'Whether the authenticated user has favourited the proposal'
+    Poll:
+      type: object
+      required:
+        - id
+        - title
+        - createdBy
+        - isActive
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: 'ID of the poll'
+        title:
+          type: string
+          description: 'Title of the poll'
+        description:
+          type: string
+          description: 'Description of the poll'
+        category:
+          $ref: '#/components/schemas/CategoryRef'
+        createdBy:
+          $ref: '#/components/schemas/UserRef'
+        isActive:
+          type: boolean
+          description: 'Whether the poll is currently active'
+        expiresAt:
+          type: string
+          description: 'Expiration date in ISO format'
+        createdAt:
+          type: string
+          description: 'Creation date in ISO format'
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollQuestion'
+        isFavourited:
+          type: boolean
+          description: 'Whether the authenticated user has favourited the poll'
+    PollQuestion:
+      type: object
+      required:
+        - id
+        - pollId
+        - text
+        - orderIndex
+      properties:
+        id:
+          type: integer
+          description: 'ID of the question'
+        pollId:
+          type: integer
+          description: 'ID of the poll'
+        text:
+          type: string
+          description: 'Text of the question'
+        orderIndex:
+          type: integer
+          description: 'Order index of the question'
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollOption'
+        userAnswerId:
+          type: integer
+          nullable: true
+          description: 'ID of the option selected by the authenticated user'
+    PollOption:
+      type: object
+      required:
+        - id
+        - questionId
+        - text
+        - orderIndex
+      properties:
+        id:
+          type: integer
+          description: 'ID of the option'
+        questionId:
+          type: integer
+          description: 'ID of the question'
+        text:
+          type: string
+          description: 'Text of the option'
+        orderIndex:
+          type: integer
+          description: 'Order index of the option'
+        voteCount:
+          type: integer
+          description: 'Number of votes for this option'
+    PollSearchItem:
+      type: object
+      required:
+        - type
+        - id
+        - title
+        - description
+      properties:
+        type:
+          type: string
+          enum: [sondaggio]
+          description: 'Item type'
+        id:
+          type: integer
+          description: 'ID of the poll'
+        title:
+          type: string
+          description: 'Title of the poll'
+        description:
+          type: string
+          description: 'Description of the poll'
+        author:
+          $ref: '#/components/schemas/UserRef'
+        category:
+          $ref: '#/components/schemas/CategoryRef'
+        isActive:
+          type: boolean
+          description: 'Whether the poll is currently active'
+        expiresAt:
+          type: string
+          description: 'Expiration date in ISO format'
+        date:
+          type: string
+          description: 'Formatted date'
+        timestamp:
+          type: string
+          description: 'Creation date in ISO format'
+        isFavourited:
+          type: boolean
+          description: 'Whether the authenticated user has favourited the poll'
+        totalVotes:
+          type: integer
+          description: 'Total number of unique voters'
+    PollCreateInput:
+      type: object
+      required:
+        - title
+        - questions
+      properties:
+        title:
+          type: string
+          description: 'Title of the poll'
+        description:
+          type: string
+          description: 'Description of the poll'
+        categoryId:
+          type: integer
+          description: 'ID of the category'
+        expiresAt:
+          type: string
+          description: 'Expiration date in ISO format'
+        isActive:
+          type: boolean
+          description: 'Whether the poll should be active'
+        questions:
+          type: array
+          items:
+            type: object
+            required:
+              - text
+            properties:
+              text:
+                type: string
+                description: 'Text of the question'
+              orderIndex:
+                type: integer
+                description: 'Order index of the question'
+              options:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - text
+                  properties:
+                    text:
+                      type: string
+                      description: 'Text of the option'
+                    orderIndex:
+                      type: integer
+                      description: 'Order index of the option'
+    DashboardStats:
+      type: object
+      required:
+        - users
+        - proposals
+        - polls
+        - votes
+      properties:
+        users:
+          type: object
+          properties:
+            total:
+              type: integer
+            citizens:
+              type: integer
+            moderators:
+              type: integer
+            admins:
+              type: integer
+        proposals:
+          type: object
+          properties:
+            total:
+              type: integer
+            published:
+              type: integer
+            drafts:
+              type: integer
+            byCategory:
+              type: array
+              items:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  label:
+                    type: string
+                  count:
+                    type: integer
+            byStatus:
+              type: array
+              items:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  label:
+                    type: string
+                  count:
+                    type: integer
+        polls:
+          type: object
+          properties:
+            total:
+              type: integer
+            active:
+              type: integer
+            closed:
+              type: integer
+        votes:
+          type: object
+          properties:
+            proposalVotes:
+              type: integer
+            pollVotes:
+              type: integer
