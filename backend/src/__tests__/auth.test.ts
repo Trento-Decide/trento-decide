@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import request from "supertest"
 import bcrypt from "bcrypt"
 import { createApp } from "../app.js"
-import { QueryResult } from "pg"
+import type { QueryResult } from "pg"
 
 vi.mock("../database.js", () => ({
   pool: { query: vi.fn(), connect: vi.fn() },
